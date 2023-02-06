@@ -1,20 +1,9 @@
-import path from 'path';
-
 import { kebabCase } from 'lodash';
 
+import { getOptions } from './options';
 import { convertRelativeTime } from './time';
 
-// TODO: figure this out
-// import roleDefinitions from '../../roles.json';
-
-export const { ADMIN_EMAIL, ADMIN_PASSWORD, API_URL } = process.env;
-
-export const BASE_DIR = path.join(process.cwd(), 'fixtures');
-
-export const ADMIN_FIXTURE_ID = 'users/admin';
-export const ORGANIZATION_FIXTURE_ID = 'organizations/default';
-
-export const CUSTOM_TRANSFORMS = {
+export const customTransforms = {
   env(key) {
     return process.env[key];
   },
@@ -36,7 +25,7 @@ export const CUSTOM_TRANSFORMS = {
   },
 };
 
-export const MODEL_TRANSFORMS = {
+export const modelTransforms = {
   User: {
     name(attributes) {
       // Note intentionally not using name defaults as this
@@ -52,31 +41,33 @@ export const MODEL_TRANSFORMS = {
     email(attributes) {
       if (!attributes.email) {
         const { firstName } = attributes;
-        const domain = ADMIN_EMAIL.split('@')[1];
+        const { adminEmail } = getOptions();
+        const domain = adminEmail.split('@')[1];
         attributes.email = `${kebabCase(firstName)}@${domain}`;
       }
     },
-    // async role(attributes, meta, context) {
-    //   const { role } = attributes;
-    //   if (role) {
-    //     const def = roleDefinitions[role];
-    //     if (def.allowScopes.includes('global')) {
-    //       attributes.roles = [{ role, scope: 'global' }];
-    //     } else {
-    //       const organization = await context.importFixtures(
-    //         ORGANIZATION_FIXTURE_ID,
-    //         meta
-    //       );
-    //       attributes.roles = [
-    //         { role, scope: 'organization', scopeRef: organization.id },
-    //       ];
-    //     }
-    //     delete attributes.role;
-    //   }
-    // },
+    async role(attributes, meta, context) {
+      const { role } = attributes;
+      const { getRoles, organizationFixtureId } = getOptions();
+      if (role) {
+        const def = getRoles()[role];
+        if (def.allowScopes.includes('global')) {
+          attributes.roles = [{ role, scope: 'global' }];
+        } else {
+          const organization = await context.importFixtures(
+            organizationFixtureId,
+            meta
+          );
+          attributes.roles = [
+            { role, scope: 'organization', scopeRef: organization.id },
+          ];
+        }
+        delete attributes.role;
+      }
+    },
     password(attributes) {
       if (!attributes.password) {
-        attributes.password = ADMIN_PASSWORD;
+        attributes.password = getOptions().adminPassword;
       }
     },
   },

@@ -18,7 +18,7 @@ import {
 const { models } = mongoose;
 const EXPORT_FILE = 'export.zip';
 
-export default async function exportFixtures(options) {
+export async function exportFixtures(options) {
   let { modelNames = [], ids = [] } = options;
   if (!modelNames.length) {
     throw new Error('Model name is required.');

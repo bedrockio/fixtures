@@ -6,19 +6,13 @@ import mongoose from 'mongoose';
 import logger from '@bedrockio/logger';
 import { get, memoize, cloneDeep, mapKeys, camelCase, kebabCase } from 'lodash';
 
-import { storeUploadedFile } from './uploads';
+import { getBaseDir, getOptions } from './options';
 import { pluralCamel, pluralKebab, stringReplaceAsync } from './utils';
 import { resolveFile } from './file';
 
 const { models } = mongoose;
 
-import {
-  API_URL,
-  BASE_DIR,
-  CUSTOM_TRANSFORMS,
-  MODEL_TRANSFORMS,
-  ADMIN_FIXTURE_ID,
-} from './const';
+import { modelTransforms, customTransforms } from './transforms';
 
 export async function importFixtures(id = '', meta) {
   const { base, name } = getIdComponents(id);
@@ -186,12 +180,13 @@ const importContentOnce = memoize(async (file, meta) => {
 });
 
 async function inlineContentFiles(content, meta) {
+  const { apiUrl } = getOptions();
   return await stringReplaceAsync(
     content,
     INLINE_CONTENT_REG,
     async (all, open, file, close) => {
       const upload = await importUpload(file, meta);
-      const url = `${API_URL}/1/uploads/${upload.id}/raw`;
+      const url = `${apiUrl}/1/uploads/${upload.id}/raw`;
       return `${open}${url}${close}`;
     }
   );
@@ -209,7 +204,7 @@ const importBufferOnce = memoize(async (file) => {
 // Model transform helpers
 
 async function applyModelTransforms(attributes, meta) {
-  const transforms = MODEL_TRANSFORMS[meta.model.modelName] || {};
+  const transforms = modelTransforms[meta.model.modelName] || {};
   await Promise.all(
     Object.values(transforms).map(async (fn) => {
       return await fn(attributes, meta, {
@@ -225,7 +220,7 @@ const CUSTOM_TRANSFORM_REG = /^<(?<func>\w+):(?<token>.+)>$/;
 
 async function transformCustom(value, meta) {
   const { func, token } = value.match(CUSTOM_TRANSFORM_REG).groups;
-  const transform = CUSTOM_TRANSFORMS[func];
+  const transform = customTransforms[func];
   if (!transform) {
     throw new Error(`Custom transform "${func}" not recognized.`);
   }
@@ -246,15 +241,16 @@ async function importUpload(file, meta) {
 }
 
 const importUploadOnce = memoize(async (file, meta) => {
+  const { adminFixtureId, storeUploadedFile } = getOptions();
   const attributes = await storeUploadedFile({
     filepath: file,
   });
-  if (meta.id !== ADMIN_FIXTURE_ID) {
+  if (meta.id !== adminFixtureId) {
     // As a special case to bootstrap the admin user, allow their
     // profile image to not have an owner to sidestep the circular
     // reference user.profileImage -> image.owner -> user.
     // All other images will be owned by the admin user for now.
-    attributes.owner = await importFixtures(ADMIN_FIXTURE_ID, {
+    attributes.owner = await importFixtures(adminFixtureId, {
       id: file,
       meta,
     });
@@ -265,10 +261,10 @@ const importUploadOnce = memoize(async (file, meta) => {
 // Generated modules may cross-reference other fixtures, in which
 // case relative file paths will be one level up, so test both directories.
 async function resolveRelativeFile(file, meta) {
-  if (await fileExists(path.resolve(BASE_DIR, meta.id, file))) {
-    return path.resolve(BASE_DIR, meta.id, file);
+  if (await fileExists(path.resolve(getBaseDir(), meta.id, file))) {
+    return path.resolve(getBaseDir(), meta.id, file);
   } else {
-    return path.resolve(BASE_DIR, meta.id, '..', file);
+    return path.resolve(getBaseDir(), meta.id, '..', file);
   }
 }
 
@@ -298,7 +294,7 @@ function isKnownField(keys, meta) {
 }
 
 function isKnownTransform(keys, meta) {
-  const transforms = MODEL_TRANSFORMS[meta.model.modelName];
+  const transforms = modelTransforms[meta.model.modelName];
   return !!transforms && keys.join('.') in transforms;
 }
 
@@ -599,7 +595,7 @@ function cleanupPlaceholders() {
 // If the default export of a resolved module is a function then call
 // it asynchronously. Memoize as the function may have side effects.
 const loadModule = memoize(async (id, args) => {
-  const resolved = await resolveFile(path.join(BASE_DIR, id));
+  const resolved = await resolveFile(path.join(getBaseDir(), id));
 
   if (resolved) {
     logger.debug(`Loading ${resolved.path}`);
@@ -607,7 +603,6 @@ const loadModule = memoize(async (id, args) => {
     if (resolved.type === 'json') {
       return JSON.parse(await fs.readFile(resolved.path, 'utf8'));
     } else {
-      // TODO: test
       let module = await import(resolved.path);
       module = module.default;
       if (typeof module === 'function') {
@@ -661,7 +656,7 @@ async function fileExists(file) {
 }
 
 async function getModelSubdirectories() {
-  const entries = await fs.readdir(BASE_DIR, { withFileTypes: true });
+  const entries = await fs.readdir(getBaseDir(), { withFileTypes: true });
   return entries
     .filter((entry) => {
       return entry.isDirectory() && getModelByName(entry.name, false);
@@ -675,7 +670,7 @@ async function getModelSubdirectories() {
 // ie. users/admin not users/admin.json
 async function loadDirectoryFixtures(dir) {
   return await new Promise((resolve, reject) => {
-    dir = path.resolve(BASE_DIR, dir);
+    dir = path.resolve(getBaseDir(), dir);
     const gl = path.resolve(dir, '**/*.{json,js}');
     glob(gl, (err, files) => {
       if (err) {

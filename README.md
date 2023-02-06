@@ -2,7 +2,7 @@
 
 Mock objects for testing and development.
 
-As projects grow in complexity, having good fixture data becomes increasingly important, however manually managing that
+As projects grow in complexity having good fixture data becomes increasingly important, however manually managing that
 data also becomes difficult. This module helps to alleviate these issues by providing a simple, consistent way to import
 fixtures.
 
@@ -34,19 +34,51 @@ yarn add @bedrockio/fixtures
 
 ## Usage
 
-TODO
+The main use of this package is to load fixtures into the database for use with the development server. Some options should be set up for this to work correctly:
 
-Package scripts are the main way of interacting with fixtures:
+```js
+import { loadFixtures, setOptions } from '@bedrockio/fixtures';
 
-- `yarn start` - When the development server starts, fixtures will be loaded if the database is empty.
-- `yarn fixtures:reload` - Drops the database and reloads all fixtures.
-- `yarn fixtures:load` - Loads fixtures if the database is empty. Fixtures are not auto-loaded in non-development
-  environments as multiple pods starting up at the same time can cause data duplication, so instead this script is used
-  to provision the data once through the CLI pod.
-- `yarn fixtures:export` - Exports documents as a zip file in a format compatible with the `fixtures` directory.
+setOptions({
+  getRoles() {
+    // Should return a JSON object describing the available
+    // user roles. This will allow roles to be set via the
+    // fixtures. An example of roles is available here:
+    // https://github.com/bedrockio/bedrock-core/blob/master/services/api/src/roles.json
+    return roles;
+  },
+  storeUploadedFile(file) {
+    // Must accept a file descriptor with a `filepath` property and
+    // store the file as appropriate for the enviroment, ie. locally in
+    // development, cloud storage otherwise. For more see:
+    // https://github.com/bedrockio/bedrock-core/blob/master/services/api/src/utils/uploads.js#L36
+  },
+});
+
+await loadFixtures();
+```
 
 Additionally, this module exports a function `importFixtures` that can manually import fixtures. This is mostly provided
 for [testing](#testing).
+
+### Options
+
+In addition to `getRoles` and `storeUploadedFile` above, the following options can be set with defaults:
+
+```js
+setOptions({
+  // The base directory for the fixtures.
+  baseDir: '<rootDir>/fixtures',
+  // The API url. This is used when inlining content like markdown or html.
+  apiUrl: process.env.API_URL,
+  // The admin email. This is used to check if the database has been
+  // bootstrapped as well as to auto-generate emails from names.
+  adminEmail: process.env.ADMIN_EMAIL,
+  // The admin password. This will become the default for fixtures users
+  // when not specified.
+  adminPassword: process.env.ADMIN_PASSWORD,
+});
+```
 
 ## File Structure
 
@@ -69,7 +101,7 @@ fixtures/shops/demo.js
 ```
 
 Only base directories corresponding to model names will be resolved, so common or utility files can be safely placed
-here:
+elsewhere:
 
 ```shell
 fixtures/shops/demo.json
@@ -93,12 +125,12 @@ pure JSON:
 However any resolvable module will be imported, so Javascript features can also be used:
 
 ```js
-const categories = require('../../categores');
+import categories from '../../categores';
 
-module.exports = {
+export default {
   name: 'Demo',
   description: `
-  
+
     A longer description
     with multiple lines.
 
@@ -110,9 +142,7 @@ module.exports = {
 Additionally, modules that export a function will be resolved asynchronously, opening up more flexibility:
 
 ```js
-const fetch = require('node-fetch');
-
-module.exports = async () => {
+export default async () => {
   return await fetch('https://jsonplaceholder.typicode.com/users/1');
 };
 ```
@@ -200,11 +230,26 @@ defaults for the `User` model:
 - `name` will be expanded to `firstName` and `lastName`.
 - `email` will be generated if not specified. It will default to the `firstName` of the user and the domain of the admin
   email, for example `jack@bedrock.foundation`.
-- `role` will be expanded into a `roles` object based on keys defined in `src/roles.json`. Organization based roles will
+- `role` will be expanded into a `roles` object based on keys defined in `getRoles`. Organization based roles will
   use the [default organization](#notes).
-- `password` will default to `ADMIN_PASSWORD` in `.env`.
+- `password` will default to `adminPassword`.
 
 These can be configured and extended in `./const`.
+
+Model transforms can be configured and extended:
+
+```js
+import { loadFixtures, setOptions } from '@bedrockio/fixtures';
+setOptions({
+  modelTransforms: {
+    foo(attributes, meta, context) {
+      // "attributes" are all the attributes on the fixture.
+      // These can be conditionally modified as needed.
+      attributes.foo = attributes.foo.replace(/s/g, 'f');
+    },
+  },
+});
+```
 
 ### Custom Transforms
 
@@ -227,7 +272,21 @@ environment variables and refs.
 }
 ```
 
-Custom transforms can be configured and extended in `./const`.
+Custom transforms can be configured and extended:
+
+```js
+import { loadFixtures, setOptions } from '@bedrockio/fixtures';
+setOptions({
+  customTransforms: {
+    foo(key, meta, context) {
+      // "key" is the passed into the transform. In this case passing
+      // <foo:bar> will result in the key being "bar" here.
+      const doc = await context.importFixtures(key, meta);
+      return doc.id;
+    }
+  }
+})
+```
 
 ## Object References
 
@@ -259,10 +318,10 @@ using a single entrypoint in the base directory:
 ```js
 // fixtures/shops/index.js
 
-const { kebabCase } = require('lodash');
+import { kebabCase } from 'lodash';
 const names = ['Flower Shop', 'Department Store', 'Supermarket'];
 
-module.exports = names.map((name) => {
+export default names.map((name) => {
   return {
     name,
     slug: kebabCase(name),
@@ -280,7 +339,7 @@ Returning an array here will result in auto-generated fixture names. For example
 ```js
 // shops/index.js
 
-const { kebabCase } = require('lodash');
+import { kebabCase } from 'lodash';
 const names = ['Flower Shop', 'Department Store', 'Supermarket'];
 const fixtures = {};
 
@@ -292,7 +351,7 @@ for (let name of names) {
   fixtures[slug] = { name, slug };
 }
 
-module.exports = fixtures;
+export default fixtures;
 ```
 
 Generated fixture modules are also passed two helper functions when they return a function as a default export. These
@@ -306,7 +365,7 @@ be useful for complex cases:
 ```js
 // fixtures/comments/index.js
 
-module.exports = async ({ loadFixtureModules, generateFixtureId }) => {
+export default async ({ loadFixtureModules, generateFixtureId }) => {
   const posts = await loadFixtureModules('posts');
   const fixtures = {};
 
@@ -335,7 +394,7 @@ Notes:
   result of another generated fixture module.
 - Generated fixture modules will supercede any other fixtures within the directory. In other words, if a
   `shops/index.js` file exists, no other files in the `shops` directory will be imported automatically. However, you can
-  of course still `require` and export them. This behavior can be thought of as a gateway allowing you to aggregate,
+  of course still `import` and re-export them. This behavior can be thought of as a gateway allowing you to aggregate,
   modify, and export customized fixtures.
 
 ## Testing
@@ -347,7 +406,7 @@ After running the imports, fixtures can be accessed both as nested objects and b
 easy referencing and iteration:
 
 ```js
-const { importFixtures } = require('utils/fixtures');
+import { importFixtures } from 'utils/fixtures';
 
 test('Test against fixtures', async () => {
   const data = await importFixtures();
@@ -359,7 +418,7 @@ test('Test against fixtures', async () => {
 Additionally, `importFixtures` can also be used to import only a subset of the fixtures:
 
 ```js
-const { importFixtures } = require('utils/fixtures');
+import { importFixtures } from 'utils/fixtures';
 
 test('Test against a single shop', async () => {
   const shop = await importFixtures('shops/demo');
@@ -386,19 +445,8 @@ lot of data depending on the dependency chain.
 
 ## Exporting
 
-The `yarn fixtures:export` script exports documents as a zip file in a format compatible with the `fixtures` directory.
-This allows database changes to be "baked" in as fixtures. The following options are accepted:
-
-- `--model(s)`: Comma separated list of model names to export (required).
-- `--id(s)`: Comma separated list of ObjectIds to export.
-- `--stdout`: Write zip binary to stdout.
-
-In addition to baking local changes, an accompanying CLI command `bedrock cloud export` allows fixtures to be exported
-from a remote cloud environment:
-
-`bedrock cloud export [environment]`
-
-Run `bedrock cloud export --help` for usage.
+The `exportFixtures` method exports documents as a zip file in a format compatible with the `fixtures` directory.
+This allows database changes to be "baked" in as fixtures. `modelNames` and `ids` (optional) may be passed as options to this helper.
 
 ## Debugging
 
@@ -406,5 +454,4 @@ Running the script with `LOG_LEVEL=debug` will output detailed information that 
 
 ## Notes
 
-Note that `users/admin` and `oraganizations/bedrock` are special fixtures required to bootstrap the data. These are
-defined in `./const`.
+Note that `adminFixtureId` and `organizationFixtureId` are special fixtures required to bootstrap the data and can be modified in the [options](#options).

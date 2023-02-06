@@ -1,6 +1,6 @@
 {
   "name": "@bedrockio/fixtures",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "type": "module",
   "description": "Bedrock mock objects for testing and development.",
   "scripts": {
@@ -37,6 +37,7 @@
     "@babel/preset-env": "^7.20.2",
     "@bedrockio/prettier-config": "^1.0.2",
     "@shelf/jest-mongodb": "^4.1.6",
+    "babel-plugin-import-replacement": "^1.0.1",
     "babel-plugin-lodash": "^3.3.4",
     "eslint": "^8.33.0",
     "eslint-plugin-bedrock": "^1.0.21",
