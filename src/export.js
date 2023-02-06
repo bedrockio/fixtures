@@ -5,10 +5,15 @@ import { createWriteStream, promises as fs } from 'fs';
 import Zip from 'jszip';
 import mongoose from 'mongoose';
 import logger from '@bedrockio/logger';
-import stringReplaceAsync from 'string-replace-async';
-import { set, memoize, isPlainObject } from 'lodash-es';
+import { set, memoize, isPlainObject } from 'lodash';
 
-import { camelUpper, kebabCase, pluralKebab, pluralCamel } from './utils';
+import {
+  camelUpper,
+  kebabCase,
+  pluralKebab,
+  pluralCamel,
+  stringReplaceAsync,
+} from './utils';
 
 const { models } = mongoose;
 const EXPORT_FILE = 'export.zip';

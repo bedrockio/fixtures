@@ -4,18 +4,10 @@ import fs from 'fs/promises';
 import glob from 'glob';
 import mongoose from 'mongoose';
 import logger from '@bedrockio/logger';
-import stringReplaceAsync from 'string-replace-async';
-import {
-  get,
-  memoize,
-  cloneDeep,
-  mapKeys,
-  camelCase,
-  kebabCase,
-} from 'lodash-es';
+import { get, memoize, cloneDeep, mapKeys, camelCase, kebabCase } from 'lodash';
 
 import { storeUploadedFile } from './uploads';
-import { pluralCamel, pluralKebab } from './utils';
+import { pluralCamel, pluralKebab, stringReplaceAsync } from './utils';
 import { resolveFile } from './file';
 
 const { models } = mongoose;

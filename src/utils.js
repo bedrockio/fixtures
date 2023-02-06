@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
 
-import { camelCase, kebabCase, upperFirst } from 'lodash-es';
+import { camelCase, kebabCase, upperFirst } from 'lodash';
+
+export { kebabCase } from 'lodash';
 
 export function pluralCamel(str) {
   // Mongoose pluralize is for db collections so will lose camel casing,
@@ -21,4 +23,14 @@ export function pluralKebab(str) {
   return mongoose.pluralize()(kebabCase(str));
 }
 
-export { kebabCase } from 'lodash-es';
+export async function stringReplaceAsync(str, reg, fn) {
+  const promises = [];
+  str.replace(reg, (...args) => {
+    promises.push(fn(...args));
+  });
+  const resolved = await Promise.all(promises);
+  str = str.replace(reg, () => {
+    return resolved.shift();
+  });
+  return str;
+}

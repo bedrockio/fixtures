@@ -1,6 +1,6 @@
 import path from 'path';
 
-import { kebabCase } from 'lodash-es';
+import { kebabCase } from 'lodash';
 
 import { convertRelativeTime } from './time';
 
