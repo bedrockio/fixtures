@@ -749,12 +749,12 @@ let stats;
 
 export function logStats() {
   logger.info();
-  logger.info('------------- Import Stats ---------------');
+  logger.info('  ------------- Import Stats ---------------');
   logger.info();
   logger.info(formatStat(stats.fixtures.length, 'fixture', 'imported'));
-  formatStatBlock('Custom modules found:', stats.modules);
-  formatStatBlock('Circular references found:', stats.circular);
-  formatStatBlock('Referenced placeholders:', referencedPlaceholders);
+  formatStatBlock('  Custom modules found:', stats.modules);
+  formatStatBlock('  Circular references found:', stats.circular);
+  formatStatBlock('  Referenced placeholders:', referencedPlaceholders);
   logger.info();
   logger.info('------------------------------------------');
   logger.info();
@@ -775,7 +775,7 @@ function pushStat(type, value) {
 }
 
 function formatStat(num, unit, msg) {
-  return `${num} ${num === 1 ? unit : pluralCamel(unit)} ${msg}`;
+  return `  ${num} ${num === 1 ? unit : pluralCamel(unit)} ${msg}`;
 }
 
 function formatStatBlock(msg, collection) {
