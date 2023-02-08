@@ -1,6 +1,6 @@
 {
   "name": "@bedrockio/fixtures",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "description": "Bedrock mock objects for testing and development.",
   "scripts": {
@@ -23,7 +23,7 @@
     "url": "https://github.com/bedrockio/fixtures"
   },
   "dependencies": {
-    "@bedrockio/logger": "^1.0.2",
+    "@bedrockio/logger": "^1.0.3",
     "glob": "^8.1.0",
     "jszip": "^3.10.1",
     "lodash": "^4.17.21"
