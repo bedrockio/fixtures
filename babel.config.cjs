@@ -1,14 +1,14 @@
-import path from 'path';
+const path = require('path');
 
 const { BUILD_PATH } = process.env;
 
-export default {
+module.exports = {
   presets: [
     [
       '@babel/preset-env',
       {
         targets: {
-          node: '16.13.0',
+          node: 'current',
         },
       },
     ],
@@ -18,7 +18,7 @@ export default {
     ...(BUILD_PATH
       ? [
           [
-            'babel-plugin-import-replacement',
+            'import-replacement',
             {
               rules: [
                 {

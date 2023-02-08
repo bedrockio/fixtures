@@ -1688,10 +1688,10 @@
   resolved "https://registry.yarnpkg.com/@bcoe/v8-coverage/-/v8-coverage-0.2.3.tgz#75a2e8b51cb758a7553d6804a5932d7aace75c39"
   integrity sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==
 
-"@bedrockio/logger@^1.0.1":
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/@bedrockio/logger/-/logger-1.0.1.tgz#67d0298af3aeb66bd9e53db51d56585870f4679d"
-  integrity sha512-DzNOcoWOBcKnHa1a46XTyBcRMekHsr8wGC7LBqdsmRGiXUy7Ey8qnV4xbVNhAU8Mwsuk1HPflBhkUc8wkLXPiw==
+"@bedrockio/logger@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@bedrockio/logger/-/logger-1.0.2.tgz#16e629dac7c8b917adc3de1ade9d8e72992e67b0"
+  integrity sha512-hAn2uUj9SVgRM2XJfxDw+KONjspeL46Mh5FHqOAyrRB6RhP8hJrthu1jV+LE4yaZF3H1bQIwinhe5AMzUgrBGw==
   dependencies:
     "@google-cloud/opentelemetry-cloud-trace-exporter" "^2.0.0"
     "@opentelemetry/api" "^1.4.0"
