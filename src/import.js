@@ -55,9 +55,12 @@ async function importFixture(id, meta) {
   try {
     // Imported attributes will be mutated, so clone here.
     const attributes = cloneDeep(await loadModule(id));
+    if (!attributes) {
+      throw new Error(`No attributes found for ${id}.`);
+    }
     return await runImport(id, attributes, meta);
   } catch (error) {
-    const sup = meta ? ` (imported from "${meta.id}")` : '';
+    const sup = meta ? ` (imported from "${getMetaChain(meta)}")` : '';
     logger.error(`Bad fixture or reference: "${id}"${sup}`);
     throw error;
   }
@@ -84,9 +87,7 @@ const createDocument = memoize(async (id, attributes, meta) => {
   // Post import phase
   setDocumentForPlaceholder(doc, meta.id);
   await resolvePlaceholders();
-  if (documentHasPlaceholders(doc, meta)) {
-    queuePlaceholderResolve(doc);
-  }
+  queuePlaceholderResolve(doc);
 
   logger.debug(`Finished import: ${id}`);
   pushStat('fixtures', id);
@@ -245,17 +246,20 @@ const importUploadOnce = memoize(async (file, meta) => {
   const attributes = await storeUploadedFile({
     filepath: file,
   });
-  if (meta.id !== adminFixtureId) {
-    // As a special case to bootstrap the admin user, allow their
-    // profile image to not have an owner to sidestep the circular
-    // reference user.profileImage -> image.owner -> user.
+  if (meta.id === adminFixtureId) {
+    // As a special case to bootstrap the admin user, set a placeholder
+    // to sidestep the circular reference user.profileImage -> image.owner -> user.
+    attributes.owner = getReferencedPlaceholder(adminFixtureId);
+  } else {
     // All other images will be owned by the admin user for now.
     attributes.owner = await importFixtures(adminFixtureId, {
       id: file,
       meta,
     });
   }
-  return await models.Upload.create(attributes);
+  const upload = await models.Upload.create(attributes);
+  queuePlaceholderResolve(upload);
+  return upload;
 });
 
 // Generated modules may cross-reference other fixtures, in which
@@ -368,6 +372,16 @@ function checkCircularReferences(id, meta) {
     }
     meta = meta.meta;
   }
+}
+
+function getMetaChain(meta) {
+  const chain = [];
+  while (meta) {
+    chain.push(meta.id);
+    meta = meta.meta;
+  }
+
+  return chain.reverse().join(' -> ');
 }
 
 // Memoize these messages to prevent multiple logs
@@ -509,7 +523,9 @@ export let unresolvedDocuments = new Set();
 export let createdDocuments = new Set();
 
 function queuePlaceholderResolve(doc) {
-  unresolvedDocuments.add(doc);
+  if (documentHasPlaceholders(doc)) {
+    unresolvedDocuments.add(doc);
+  }
 }
 
 async function resolvePlaceholders() {
@@ -551,8 +567,8 @@ function getDocumentPlaceholders(doc) {
   return placeholders;
 }
 
-function documentHasPlaceholders(doc, meta) {
-  return getDocumentPlaceholders(doc, meta).length > 0;
+function documentHasPlaceholders(doc) {
+  return getDocumentPlaceholders(doc).length > 0;
 }
 
 function getDocumentForPlaceholder(placeholder) {
@@ -731,11 +747,9 @@ export function resetFixtures() {
 
 async function buildFixtures(arr, fn) {
   const fixtures = {};
-  await Promise.all(
-    arr.map(async (el) => {
-      Object.assign(fixtures, await fn(el));
-    })
-  );
+  for (let el of arr) {
+    Object.assign(fixtures, await fn(el));
+  }
   return fixtures;
 }
 
