@@ -40,13 +40,11 @@ The main use of this package is to load fixtures into the database for use with 
 import { loadFixtures, setOptions } from '@bedrockio/fixtures';
 
 setOptions({
-  getRoles() {
-    // Should return a JSON object describing the available
-    // user roles. This will allow roles to be set via the
-    // fixtures. An example of roles is available here:
-    // https://github.com/bedrockio/bedrock-core/blob/master/services/api/src/roles.json
-    return roles;
-  },
+  // Should be a JSON object describing the available
+  // user roles. This will allow roles to be set via the
+  // fixtures. An example of roles is available here:
+  // https://github.com/bedrockio/bedrock-core/blob/master/services/api/src/roles.json
+  roles,
   storeUploadedFile(file) {
     // Must accept a file descriptor with a `filepath` property and
     // store the file as appropriate for the enviroment, ie. locally in
@@ -63,21 +61,27 @@ for [testing](#testing).
 
 ### Options
 
-In addition to `getRoles` and `storeUploadedFile` above, the following options can be set with defaults:
+In addition to `roles` and `storeUploadedFile` above, the following options can be set with defaults:
 
 ```js
 setOptions({
   // The base directory for the fixtures.
   baseDir: '<rootDir>/fixtures',
-  // The API url. This is used when inlining content like markdown or html.
-  apiUrl: process.env.API_URL,
-  // The admin email. This is used to check if the database has been
-  // bootstrapped as well as to auto-generate emails from names.
-  adminEmail: process.env.ADMIN_EMAIL,
-  // The admin password. This will become the default for fixtures users
-  // when not specified.
-  adminPassword: process.env.ADMIN_PASSWORD,
+  // The path to the root admin fixture. This is required for bootstrap.
+  adminFixtureId: 'users/admin',
+  // The path to the default organization fixture. This is required for bootstrap.
+  organizationFixtureId: 'organizations/default',
 });
+```
+
+### Options
+
+The following environment variables should be set in the project `.env` file for this package to work properly:
+
+```
+ADMIN_NAME=Doctor Admin
+ADMIN_EMAIL=admin@test.com
+ADMIN_PASSWORD=123456789
 ```
 
 ## File Structure
@@ -230,9 +234,9 @@ defaults for the `User` model:
 - `name` will be expanded to `firstName` and `lastName`.
 - `email` will be generated if not specified. It will default to the `firstName` of the user and the domain of the admin
   email, for example `jack@bedrock.foundation`.
-- `role` will be expanded into a `roles` object based on keys defined in `getRoles`. Organization based roles will
+- `role` will be expanded into a `roles` object based on keys defined in the `roles` option. Organization based roles will
   use the [default organization](#notes).
-- `password` will default to `adminPassword`.
+- `password` will default to the `ADMIN_PASSWORD` stored in `.env`.
 
 These can be configured and extended in `./const`.
 

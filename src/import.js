@@ -6,7 +6,8 @@ import mongoose from 'mongoose';
 import logger from '@bedrockio/logger';
 import { get, memoize, cloneDeep, mapKeys, camelCase, kebabCase } from 'lodash';
 
-import { getBaseDir, getOptions } from './options';
+import { getBaseDir, getOption } from './options';
+import { getEnv } from './env';
 import { pluralCamel, pluralKebab, stringReplaceAsync } from './utils';
 import { resolveFile } from './file';
 
@@ -181,7 +182,7 @@ const importContentOnce = memoize(async (file, meta) => {
 });
 
 async function inlineContentFiles(content, meta) {
-  const { apiUrl } = getOptions();
+  const apiUrl = getEnv('API_URL');
   return await stringReplaceAsync(
     content,
     INLINE_CONTENT_REG,
@@ -242,7 +243,8 @@ async function importUpload(file, meta) {
 }
 
 const importUploadOnce = memoize(async (file, meta) => {
-  const { adminFixtureId, storeUploadedFile } = getOptions();
+  const adminFixtureId = getOption('adminFixtureId');
+  const storeUploadedFile = getOption('storeUploadedFile');
   const attributes = await storeUploadedFile({
     filepath: file,
   });

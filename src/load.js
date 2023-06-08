@@ -1,12 +1,12 @@
 import logger from '@bedrockio/logger';
 import mongoose from 'mongoose';
 
-import { getOptions } from './options';
+import { getEnv } from './env';
 import { importFixtures, logStats, resetStats } from './import';
 
 // Loads fixtures once if not loaded and returns true/false.
 export async function loadFixtures() {
-  const { adminEmail } = getOptions();
+  const adminEmail = getEnv('ADMIN_EMAIL');
   if (await mongoose.models.User.findOne({ email: adminEmail })) {
     return false;
   }

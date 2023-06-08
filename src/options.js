@@ -6,16 +6,9 @@ import { modelTransforms, customTransforms } from './transforms';
 
 const options = {
   baseDir: path.join(process.cwd(), 'fixtures'),
-  getRoles: () => {
-    logger.warn('getRoles option missing. No roles will be set.');
-    return {};
-  },
   storeUploadedFile: () => {
     logger.warn('storeUploadedFile option missing. File will not be saved.');
   },
-  apiUrl: process.env.API_URL,
-  adminEmail: process.env.ADMIN_EMAIL,
-  adminPassword: process.env.ADMIN_PASSWORD,
   adminFixtureId: 'users/admin',
   organizationFixtureId: 'organizations/default',
 };
@@ -24,8 +17,12 @@ export function getBaseDir() {
   return options['baseDir'];
 }
 
-export function getOptions() {
-  return options;
+export function getOption(name) {
+  if (name in options) {
+    return options[name];
+  } else {
+    throw new Error(`Could not find option "${name}".`);
+  }
 }
 
 export function setOptions(obj) {

@@ -1,6 +1,7 @@
 import { kebabCase } from 'lodash';
 
-import { getOptions } from './options';
+import { getEnv } from './env';
+import { getOption } from './options';
 import { convertRelativeTime } from './time';
 
 export const customTransforms = {
@@ -41,16 +42,17 @@ export const modelTransforms = {
     email(attributes) {
       if (!attributes.email) {
         const { firstName } = attributes;
-        const { adminEmail } = getOptions();
+        const adminEmail = getEnv('ADMIN_EMAIL');
         const domain = adminEmail.split('@')[1];
         attributes.email = `${kebabCase(firstName)}@${domain}`;
       }
     },
     async role(attributes, meta, context) {
       const { role } = attributes;
-      const { getRoles, organizationFixtureId } = getOptions();
+      const roles = getOption('roles');
+      const organizationFixtureId = getOption('organizationFixtureId');
       if (role) {
-        const def = getRoles()[role];
+        const def = roles[role];
         if (def.allowScopes.includes('global')) {
           attributes.roles = [{ role, scope: 'global' }];
         } else {
@@ -67,7 +69,7 @@ export const modelTransforms = {
     },
     password(attributes) {
       if (!attributes.password) {
-        attributes.password = getOptions().adminPassword;
+        attributes.password = getEnv('ADMIN_PASSWORD');
       }
     },
   },
