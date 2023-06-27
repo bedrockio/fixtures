@@ -242,27 +242,34 @@ async function importUpload(file, meta) {
   return await importUploadOnce(file, meta);
 }
 
-const importUploadOnce = memoize(async (file, meta) => {
-  const adminFixtureId = getOption('adminFixtureId');
-  const storeUploadedFile = getOption('storeUploadedFile');
-  const attributes = await storeUploadedFile({
-    filepath: file,
-  });
-  if (meta.id === adminFixtureId) {
-    // As a special case to bootstrap the admin user, set a placeholder
-    // to sidestep the circular reference user.profileImage -> image.owner -> user.
-    attributes.owner = getReferencedPlaceholder(adminFixtureId);
-  } else {
-    // All other images will be owned by the admin user for now.
-    attributes.owner = await importFixtures(adminFixtureId, {
-      id: file,
-      meta,
+const importUploadOnce = memoize(
+  async (file, meta) => {
+    const adminFixtureId = getOption('adminFixtureId');
+    const storeUploadedFile = getOption('storeUploadedFile');
+    const attributes = await storeUploadedFile({
+      filepath: file,
     });
+    if (meta.id === adminFixtureId) {
+      // As a special case to bootstrap the admin user, set a placeholder
+      // to sidestep the circular reference user.profileImage -> image.owner -> user.
+      attributes.owner = getReferencedPlaceholder(adminFixtureId);
+    } else {
+      // All other images will be owned by the admin user for now.
+      // This field MUST be set to an id to avoid a circular reference.
+      const admin = await importFixtures(adminFixtureId, {
+        id: file,
+        meta,
+      });
+      attributes.owner = admin.id;
+    }
+    const upload = await models.Upload.create(attributes);
+    queuePlaceholderResolve(upload);
+    return upload;
+  },
+  (file, meta) => {
+    return file + meta.id;
   }
-  const upload = await models.Upload.create(attributes);
-  queuePlaceholderResolve(upload);
-  return upload;
-});
+);
 
 // Generated modules may cross-reference other fixtures, in which
 // case relative file paths will be one level up, so test both directories.
@@ -548,7 +555,7 @@ function resolveDocumentPlaceholders(doc) {
   for (let [placeholder, path] of getDocumentPlaceholders(doc)) {
     const resolved = getDocumentForPlaceholder(placeholder);
     if (resolved) {
-      doc.set(path, resolved);
+      doc.set(path, resolved.id);
     }
   }
 }

@@ -1,6 +1,15 @@
 import mongoose from 'mongoose';
 
 import { importFixtures } from '../src/import';
+import { setOptions } from '../src/options';
+
+setOptions({
+  roles: [],
+  storeUploadedFile: () => {
+    // blah
+    return {};
+  },
+});
 
 function createModel(name, attributes) {
   return mongoose.model(name, new mongoose.Schema(attributes));
@@ -9,12 +18,23 @@ function createModel(name, attributes) {
 createModel('User', {
   firstName: 'String',
   lastName: 'String',
+  image: {
+    type: 'ObjectId',
+    ref: 'Upload',
+  },
 });
 
 createModel('Post', {
   content: 'String',
   nested: {
     nestedContent: 'String',
+  },
+});
+
+createModel('Upload', {
+  owner: {
+    type: 'ObjectId',
+    ref: 'User',
   },
 });
 
@@ -90,5 +110,15 @@ describe('importFixtures', () => {
       firstName: 'James',
       lastName: 'McAvoy',
     });
+  });
+
+  it('should not have populated owner for admin', async () => {
+    const admin = await importFixtures('users/admin');
+    expect(admin.image.owner.image).toBeUndefined();
+  });
+
+  it('should not have populated owner for user', async () => {
+    const james = await importFixtures('users/james');
+    expect(james.image.owner.image).toBeUndefined();
   });
 });
