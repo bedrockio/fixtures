@@ -20,13 +20,10 @@ export async function importFixtures(id = '', meta) {
   if (!base) {
     return await importRoot(meta);
   }
-  const generated = await getGeneratedFixtures(base, name, 'imported');
-  if (generated) {
-    return generated;
-  } else if (name) {
+  if (name) {
     return await importFixture(id, meta);
   } else {
-    return await importDirectory(base, meta);
+    return await importDirectory(id, meta);
   }
 }
 
@@ -43,8 +40,14 @@ async function importRoot(meta) {
   });
 }
 
-async function importDirectory(base, meta) {
+async function importDirectory(id, meta) {
+  const generated = await getGeneratedFixtures(id, 'imported');
+  if (generated) {
+    return generated;
+  }
+  const base = getIdBase(id);
   const names = await loadDirectoryFixtures(base);
+
   return await buildFixtures(names, async (name) => {
     return {
       [name]: await importFixtures(join(base, name), meta),
@@ -54,12 +57,29 @@ async function importDirectory(base, meta) {
 
 async function importFixture(id, meta) {
   try {
+    const generated = await getGeneratedFixtures(id, 'imported');
+    if (generated) {
+      return generated;
+    }
+
     // Imported attributes will be mutated, so clone here.
     const attributes = cloneDeep(await loadModule(id));
-    if (!attributes) {
+
+    if (Array.isArray(attributes)) {
+      const base = getIdBase(id);
+      const generateFixtureId = getFixtureIdGenerator(base);
+      const docs = [];
+      for (let obj of attributes) {
+        const id = join(base, generateFixtureId());
+        const doc = await runImport(id, obj, meta);
+        docs.push(doc);
+      }
+      return docs;
+    } else if (attributes) {
+      return await runImport(id, attributes, meta);
+    } else {
       throw new Error(`No attributes found for ${id}.`);
     }
-    return await runImport(id, attributes, meta);
   } catch (error) {
     const sup = meta ? ` (imported from "${getMetaChain(meta)}")` : '';
     logger.error(`Bad fixture or reference: "${id}"${sup}`);
@@ -415,7 +435,8 @@ const logCircularReference = memoize((message) => {
 
 // Generated module helpers.
 
-async function getGeneratedFixtures(base, name, type) {
+async function getGeneratedFixtures(id, type) {
+  const { base, name } = getIdComponents(id);
   const generated = await importGeneratedFixtures(base);
   if (generated) {
     let fixtures = generated[type];
@@ -501,8 +522,8 @@ function getGeneratedContext(meta) {
 
 // Allow generators to load raw modules to reference them.
 async function loadFixtureModules(id) {
-  const { base, name } = getIdComponents(id);
-  const generated = await getGeneratedFixtures(base, name, 'loaded');
+  const base = getIdBase();
+  const generated = await getGeneratedFixtures(id, 'loaded');
   if (generated) {
     return generated;
   }
