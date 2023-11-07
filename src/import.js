@@ -622,7 +622,7 @@ function isReferencedPlaceholder(objectId) {
 
 // Generates a placeholder once per id.
 const getPlaceholderForId = memoize((id) => {
-  const placeholder = mongoose.Types.ObjectId();
+  const placeholder = new mongoose.Types.ObjectId();
   placeholdersById.set(id, placeholder.toString());
   return placeholder;
 });
