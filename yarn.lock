@@ -2776,11 +2776,6 @@ babel-jest@^29.4.1:
     graceful-fs "^4.2.9"
     slash "^3.0.0"
 
-babel-plugin-import-replacement@^1.0.1:
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/babel-plugin-import-replacement/-/babel-plugin-import-replacement-1.0.1.tgz#f453382334c789468e27d92c8e853f2a9da2a74c"
-  integrity sha512-JRaC9cFKOiLOjjegzEr85fXZAcbvViBDxv4Yvx6AThEZhD9ruw+YyzKC0WIBh1ZlNXU0kyzAgznEZE/JnqeyRA==
-
 babel-plugin-istanbul@^6.1.1:
   version "6.1.1"
   resolved "https://registry.yarnpkg.com/babel-plugin-istanbul/-/babel-plugin-istanbul-6.1.1.tgz#fa88ec59232fd9b4e36dbbc540a8ec9a9b47da73"

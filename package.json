@@ -7,6 +7,7 @@
     "test": "jest",
     "lint": "eslint",
     "build": "scripts/build",
+    "eject": "scripts/eject.js",
     "prepublishOnly": "npm run build"
   },
   "main": "dist/cjs/index.js",
@@ -38,7 +39,6 @@
     "@babel/preset-env": "^7.20.2",
     "@bedrockio/prettier-config": "^1.0.2",
     "@shelf/jest-mongodb": "^4.1.7",
-    "babel-plugin-import-replacement": "^1.0.1",
     "babel-plugin-lodash": "^3.3.4",
     "eslint": "^8.33.0",
     "eslint-plugin-bedrock": "^1.0.21",
