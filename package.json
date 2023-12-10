@@ -1,6 +1,6 @@
 {
   "name": "@bedrockio/fixtures",
-  "version": "1.0.7",
+  "version": "1.1.0",
   "type": "module",
   "description": "Bedrock mock objects for testing and development.",
   "scripts": {

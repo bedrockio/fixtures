@@ -263,26 +263,34 @@ async function importUpload(file, meta) {
 }
 
 const importUploadOnce = memoize(
-  async (file, meta) => {
+  async (filepath, meta) => {
     const adminFixtureId = getOption('adminFixtureId');
-    const storeUploadedFile = getOption('storeUploadedFile');
-    const attributes = await storeUploadedFile({
-      filepath: file,
-    });
+
+    let owner;
     if (meta.id === adminFixtureId) {
       // As a special case to bootstrap the admin user, set a placeholder
       // to sidestep the circular reference user.profileImage -> image.owner -> user.
-      attributes.owner = getReferencedPlaceholder(adminFixtureId);
+      owner = getReferencedPlaceholder(adminFixtureId);
     } else {
       // All other images will be owned by the admin user for now.
       // This field MUST be set to an id to avoid a circular reference.
       const admin = await importFixtures(adminFixtureId, {
-        id: file,
+        id: filepath,
         meta,
       });
-      attributes.owner = admin.id;
+      owner = admin.id;
     }
-    const upload = await models.Upload.create(attributes);
+
+    const createUpload = getOption('createUpload');
+    const upload = await createUpload(
+      {
+        filepath,
+      },
+      {
+        owner,
+      }
+    );
+
     queuePlaceholderResolve(upload);
     return upload;
   },
