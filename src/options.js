@@ -6,7 +6,7 @@ import { modelTransforms, customTransforms } from './transforms';
 
 const options = {
   baseDir: path.join(process.cwd(), 'fixtures'),
-  storeUploadedFile: () => {
+  createUpload: () => {
     logger.warn('storeUploadedFile option missing. File will not be saved.');
   },
   adminFixtureId: 'users/admin',

@@ -5,9 +5,11 @@ import { setOptions } from '../src/options';
 
 setOptions({
   roles: [],
-  storeUploadedFile: () => {
-    // blah
-    return {};
+  createUpload: async (file, options) => {
+    const Upload = mongoose.models['Upload'];
+    return await Upload.create({
+      owner: options.owner,
+    });
   },
 });
 
