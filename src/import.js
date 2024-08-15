@@ -91,8 +91,14 @@ async function runImport(id, attributes, meta) {
   const [root] = id.split(path.sep);
   const model = getModelByName(root);
   meta = { id, model, meta, base: attributes };
-  return createDocument(id, attributes, meta);
+  if (isUserImport(id)) {
+    return await findOrCreateUser(id, attributes, meta);
+  } else {
+    return await createDocument(id, attributes, meta);
+  }
 }
+
+// Document creation
 
 const createDocument = memoize(async (id, attributes, meta) => {
   logger.debug(`Importing: ${id}`);
@@ -113,6 +119,29 @@ const createDocument = memoize(async (id, attributes, meta) => {
   logger.debug(`Finished import: ${id}`);
   pushStat('fixtures', id);
   return doc;
+});
+
+function isUserImport(id) {
+  return id.split('/')[0] === 'users';
+}
+
+const findOrCreateUser = memoize(async (id, attributes, meta) => {
+  const { User } = mongoose.models;
+  const { email } = attributes;
+
+  let user;
+
+  if (User && email) {
+    user = await User.findOne({
+      email,
+    });
+  }
+
+  if (!user) {
+    user = await await createDocument(id, attributes, meta);
+  }
+
+  return user;
 });
 
 // Property transform helpers.
@@ -772,6 +801,7 @@ function getIdBase(id) {
 export function resetFixtures() {
   cleanupPlaceholders();
   createDocument.cache.clear();
+  findOrCreateUser.cache.clear();
   importGeneratedFixtures.cache.clear();
   importUploadOnce.cache.clear();
   importBufferOnce.cache.clear();

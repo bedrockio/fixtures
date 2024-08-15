@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-import { importFixtures } from '../src/import';
+import { importFixtures, resetFixtures } from '../src/import';
 import { setOptions } from '../src/options';
 
 setOptions({
@@ -20,6 +20,10 @@ function createModel(name, attributes) {
 createModel('User', {
   firstName: 'String',
   lastName: 'String',
+  email: {
+    type: 'String',
+    unique: true,
+  },
   image: {
     type: 'ObjectId',
     ref: 'Upload',
@@ -122,5 +126,22 @@ describe('importFixtures', () => {
   it('should not have populated owner for user', async () => {
     const james = await importFixtures('users/james');
     expect(james.image.owner.image).toBeUndefined();
+  });
+
+  it('should not fail on unique constraint if user exists', async () => {
+    const { User } = mongoose.models;
+    resetFixtures();
+    await User.deleteMany();
+    const admin = await User.create({
+      firstName: 'Marlon',
+      lastName: 'Brando',
+      email: 'admin@bedrock.io',
+    });
+    const james = await importFixtures('users/james');
+    expect(james.image.owner.toString()).toEqual(admin.id);
+
+    await User.deleteOne({
+      email: 'admin@bedrock.io',
+    });
   });
 });
