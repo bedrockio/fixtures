@@ -1,6 +1,6 @@
 {
   "firstName": "Marlon",
   "lastName": "Brando",
-  "email": "admin@bedrock.io",
+  "email": "<env:ADMIN_EMAIL>",
   "image": "../files/image.webp"
 }

@@ -127,13 +127,15 @@ function isUserImport(id) {
 
 const findOrCreateUser = memoize(async (id, attributes, meta) => {
   const { User } = mongoose.models;
-  const { email } = attributes;
 
   let user;
 
-  if (User && email) {
+  if (User && attributes.email) {
+    await transformAttributes(attributes, meta);
+    await applyModelTransforms(attributes, meta);
+
     user = await User.findOne({
-      email,
+      email: attributes.email,
     });
   }
 
