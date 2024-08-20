@@ -97,7 +97,9 @@ describe('importFixtures', () => {
 
   it('should not interpret external URL as file', async () => {
     const jack = await importFixtures('users/jack');
-    expect(jack.profile).toBe('https://example.com/path/to/image.jpg');
+    expect(jack.profile).toBe(
+      'My profile image: https://example.com/path/to/image.jpg'
+    );
   });
 
   it('should load an es module', async () => {
