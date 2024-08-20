@@ -28,6 +28,7 @@ createModel('User', {
     type: 'ObjectId',
     ref: 'Upload',
   },
+  profile: 'String',
 });
 
 createModel('Post', {
@@ -62,8 +63,8 @@ describe('importFixtures', () => {
   });
 
   it('should load directory fixtures', async () => {
-    const fixtures = await importFixtures('users');
-    expect(fixtures).toMatchObject({
+    const users = await importFixtures('users');
+    expect(users).toMatchObject({
       admin: {
         firstName: 'Marlon',
         lastName: 'Brando',
@@ -94,25 +95,30 @@ describe('importFixtures', () => {
     });
   });
 
+  it('should not interpret external URL as file', async () => {
+    const jack = await importFixtures('users/jack');
+    expect(jack.profile).toBe('https://example.com/path/to/image.jpg');
+  });
+
   it('should load an es module', async () => {
-    const fixtures = await importFixtures('users/jack');
-    expect(fixtures).toMatchObject({
+    const jack = await importFixtures('users/jack');
+    expect(jack).toMatchObject({
       firstName: 'Jack',
       lastName: 'Black',
     });
   });
 
   it('should load an es module exporting a function', async () => {
-    const fixtures = await importFixtures('users/ben');
-    expect(fixtures).toMatchObject({
+    const ben = await importFixtures('users/ben');
+    expect(ben).toMatchObject({
       firstName: 'Ben',
       lastName: 'Maxwell',
     });
   });
 
   it('should load an index file', async () => {
-    const fixtures = await importFixtures('users/james');
-    expect(fixtures).toMatchObject({
+    const james = await importFixtures('users/james');
+    expect(james).toMatchObject({
       firstName: 'James',
       lastName: 'McAvoy',
     });

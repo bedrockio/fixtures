@@ -188,7 +188,7 @@ async function transformProperty(keys, value, meta) {
         value[k] = await transformProperty([...keys, k], v, meta);
       })
     );
-  } else if (FILE_REG.test(value)) {
+  } else if (isLocalFile(value)) {
     value = await transformFile(keys, value, meta);
   } else if (CUSTOM_TRANSFORM_REG.test(value)) {
     value = await transformCustom(value, meta);
@@ -214,6 +214,13 @@ async function transformFile(keys, value, meta) {
     value = await importContent(value, meta);
   }
   return value;
+}
+
+function isLocalFile(value) {
+  if (typeof value !== 'string' || value.startsWith('http')) {
+    return false;
+  }
+  return FILE_REG.test(value);
 }
 
 // Note that the same content file may be imported
