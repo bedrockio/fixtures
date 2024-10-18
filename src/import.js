@@ -614,24 +614,30 @@ function queuePlaceholderResolve(doc) {
 async function resolvePlaceholders() {
   await Promise.all(
     Array.from(unresolvedDocuments).map(async (doc) => {
-      resolveDocumentPlaceholders(doc);
-      if (!documentHasPlaceholders(doc)) {
-        if (doc.isModified()) {
-          await doc.save();
-        }
-        unresolvedDocuments.delete(doc);
+      const update = resolveDocumentPlaceholders(doc);
+      if (update) {
+        // Avoid hitting save hooks as these can cause
+        // issues with the autoclean test functionality
+        // used in bedrock with circular references.
+        await doc.updateOne({
+          $set: update,
+        });
       }
+      unresolvedDocuments.delete(doc);
     })
   );
 }
 
 function resolveDocumentPlaceholders(doc) {
+  let result;
   for (let [placeholder, path] of getDocumentPlaceholders(doc)) {
     const resolved = getDocumentForPlaceholder(placeholder);
     if (resolved) {
-      doc.set(path, resolved.id);
+      result ||= {};
+      result[path] = resolved.id;
     }
   }
+  return result;
 }
 
 function getDocumentPlaceholders(doc) {
