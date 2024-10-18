@@ -11,6 +11,8 @@ const options = {
   },
   adminFixtureId: 'users/admin',
   organizationFixtureId: 'organizations/default',
+  showPlaceholders: false,
+  warnCircularReferences: false,
 };
 
 export function getBaseDir() {

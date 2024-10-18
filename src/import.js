@@ -482,7 +482,9 @@ const logBadFixtureField = memoize(
 );
 
 const logCircularReference = memoize((message) => {
-  logger.warn('Circular reference detected:', message);
+  if (getOption('warnCircularReferences')) {
+    logger.warn('Circular reference detected:', message);
+  }
   pushStat('circular', message);
 });
 
@@ -857,8 +859,12 @@ export function logStats() {
   logger.info();
   logger.info(formatStat(stats.fixtures.length, 'fixture', 'imported'));
   formatStatBlock('  Custom modules found:', stats.modules);
-  formatStatBlock('  Circular references found:', stats.circular);
-  formatStatBlock('  Referenced placeholders:', referencedPlaceholders);
+  if (getOption('warnCircularReferences')) {
+    formatStatBlock('  Circular references found:', stats.circular);
+  }
+  if (getOption('showPlaceholders')) {
+    formatStatBlock('  Referenced placeholders:', referencedPlaceholders);
+  }
   logger.info();
   logger.info('------------------------------------------');
   logger.info();
