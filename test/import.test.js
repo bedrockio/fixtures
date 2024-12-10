@@ -3,6 +3,10 @@ import mongoose from 'mongoose';
 import { importFixtures, resetFixtures } from '../src/import';
 import { setOptions } from '../src/options';
 
+process.env['ADMIN_EMAIL'] = 'admin@bedrock.io';
+process.env['ADMIN_PASSWORD'] = 'password';
+process.env['API_URL'] = 'http://localhost';
+
 setOptions({
   roles: [],
   createUpload: async (file, options) => {

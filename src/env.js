@@ -1,11 +1,7 @@
-import { getAll } from '@bedrockio/config';
-
-const ENV = getAll();
-
-export function getEnv(name) {
-  if (name in ENV) {
-    return ENV[name];
-  } else {
+export function requireEnv(name) {
+  const value = process.env[name];
+  if (!value) {
     throw new Error(`Could not find env variable "${name}".`);
   }
+  return value;
 }

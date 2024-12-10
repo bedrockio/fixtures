@@ -7,7 +7,7 @@ import logger from '@bedrockio/logger';
 import { get, memoize, cloneDeep, mapKeys, camelCase, kebabCase } from 'lodash';
 
 import { getBaseDir, getOption } from './options';
-import { getEnv } from './env';
+import { requireEnv } from './env';
 import { pluralCamel, pluralKebab, stringReplaceAsync } from './utils';
 import { resolveFile } from './file';
 
@@ -247,7 +247,7 @@ const importContentOnce = memoize(async (file, meta) => {
 });
 
 async function inlineContentFiles(content, meta) {
-  const apiUrl = getEnv('API_URL');
+  const apiUrl = requireEnv('API_URL');
   return await stringReplaceAsync(
     content,
     INLINE_CONTENT_REG,

@@ -1,6 +1,6 @@
 import { kebabCase } from 'lodash';
 
-import { getEnv } from './env';
+import { requireEnv } from './env';
 import { getOption } from './options';
 import { convertRelativeTime } from './time';
 
@@ -42,7 +42,7 @@ export const modelTransforms = {
     email(attributes) {
       if (!attributes.email) {
         const { firstName } = attributes;
-        const adminEmail = getEnv('ADMIN_EMAIL');
+        const adminEmail = requireEnv('ADMIN_EMAIL');
         const domain = adminEmail.split('@')[1];
         attributes.email = `${kebabCase(firstName)}@${domain}`;
       }
@@ -69,7 +69,7 @@ export const modelTransforms = {
     },
     password(attributes) {
       if (!attributes.password) {
-        attributes.password = getEnv('ADMIN_PASSWORD');
+        attributes.password = requireEnv('ADMIN_PASSWORD');
       }
     },
   },
