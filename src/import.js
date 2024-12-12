@@ -78,7 +78,7 @@ async function importFixture(id, meta) {
     } else if (attributes) {
       return await runImport(id, attributes, meta);
     } else {
-      throw new Error(`No attributes found for ${id}.`);
+      throw new Error(`No fixture found: "${id}".`);
     }
   } catch (error) {
     const sup = meta ? ` (imported from "${getMetaChain(meta)}")` : '';
@@ -401,7 +401,11 @@ function getReferenceModel(keys, meta) {
   if (!ref && refPath) {
     ref = get(meta.base, refPath);
   }
-  return models[ref];
+  const model = models[ref];
+  if (!model) {
+    throw new Error(`Unknown model ${ref}.`);
+  }
+  return model;
 }
 
 function getSchemaType(keys, meta) {
