@@ -1,6 +1,7 @@
 {
   "firstName": "Marlon",
   "lastName": "Brando",
+  "role": "admin",
   "email": "<env:ADMIN_EMAIL>",
   "image": "../files/image.webp"
 }

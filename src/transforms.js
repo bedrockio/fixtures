@@ -52,8 +52,8 @@ export const modelTransforms = {
       const roles = getOption('roles');
       const organizationFixtureId = getOption('organizationFixtureId');
       if (role) {
-        const def = roles[role];
-        if (def.allowScopes.includes('global')) {
+        const { allowScopes = ['global'] } = roles[role] || {};
+        if (allowScopes.includes('global')) {
           attributes.roles = [{ role, scope: 'global' }];
         } else {
           const organization = await context.importFixtures(
@@ -61,7 +61,11 @@ export const modelTransforms = {
             meta
           );
           attributes.roles = [
-            { role, scope: 'organization', scopeRef: organization.id },
+            {
+              role,
+              scope: 'organization',
+              scopeRef: organization.id,
+            },
           ];
         }
         delete attributes.role;

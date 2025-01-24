@@ -8,7 +8,22 @@ process.env['ADMIN_PASSWORD'] = 'password';
 process.env['API_URL'] = 'http://localhost';
 
 setOptions({
-  roles: [],
+  roles: {
+    admin: {
+      allowScopes: ['global'],
+      name: 'Admin',
+      permissions: {
+        shops: 'all',
+      },
+    },
+    viewer: {
+      allowScopes: ['organization'],
+      name: 'Admin',
+      permissions: {
+        shops: 'all',
+      },
+    },
+  },
   createUpload: async (file, options) => {
     const Upload = mongoose.models['Upload'];
     return await Upload.create({
@@ -33,6 +48,13 @@ createModel('User', {
     ref: 'Upload',
   },
   profile: 'String',
+  roles: [
+    {
+      role: 'String',
+      scope: 'String',
+      scopeRef: 'String',
+    },
+  ],
 });
 
 createModel('Post', {
@@ -47,6 +69,10 @@ createModel('Upload', {
     type: 'ObjectId',
     ref: 'User',
   },
+});
+
+createModel('Organization', {
+  name: 'String',
 });
 
 describe('importFixtures', () => {
@@ -133,11 +159,39 @@ describe('importFixtures', () => {
   it('should not have populated owner for admin', async () => {
     const admin = await importFixtures('users/admin');
     expect(admin.image.owner.image).toBeUndefined();
+    expect(admin.roles).toMatchObject([
+      {
+        role: 'admin',
+        scope: 'global',
+      },
+    ]);
   });
 
   it('should not have populated owner for user', async () => {
     const james = await importFixtures('users/james');
     expect(james.image.owner.image).toBeUndefined();
+  });
+
+  it('should import undefined roles as global', async () => {
+    const charles = await importFixtures('users/charles');
+    expect(charles.roles).toMatchObject([
+      {
+        role: 'member',
+        scope: 'global',
+      },
+    ]);
+  });
+
+  it('should import roles with organization scopes', async () => {
+    const victor = await importFixtures('users/victor');
+    const organization = await importFixtures('organizations/default');
+    expect(victor.roles).toMatchObject([
+      {
+        role: 'viewer',
+        scope: 'organization',
+        scopeRef: organization.id,
+      },
+    ]);
   });
 
   it('should not fail on unique constraint if user exists', async () => {
