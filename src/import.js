@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs/promises';
 
-import glob from 'glob';
+import { glob } from 'glob';
 import mongoose from 'mongoose';
 import logger from '@bedrockio/logger';
 import { get, memoize, cloneDeep, mapKeys, camelCase, kebabCase } from 'lodash';
@@ -780,29 +780,20 @@ async function getModelSubdirectories() {
 // Note: must return fixtures names without file extension:
 // ie. users/admin not users/admin.json
 async function loadDirectoryFixtures(dir) {
-  return await new Promise((resolve, reject) => {
-    dir = path.resolve(getBaseDir(), dir);
-    const gl = path.resolve(dir, '**/*.{json,js}');
-    glob(gl, (err, files) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(
-          files.map((file) => {
-            file = path.relative(dir, file);
-            let dirname = path.dirname(file);
-            let basename = path.basename(file);
-            basename = path.basename(basename, '.js');
-            basename = path.basename(basename, '.json');
-            if (basename === 'index') {
-              return dirname;
-            } else {
-              return path.join(dirname, basename);
-            }
-          })
-        );
-      }
-    });
+  dir = path.resolve(getBaseDir(), dir);
+  const gl = path.resolve(dir, '**/*.{json,js}');
+  const files = await glob(gl);
+  return files.map((file) => {
+    file = path.relative(dir, file);
+    let dirname = path.dirname(file);
+    let basename = path.basename(file);
+    basename = path.basename(basename, '.js');
+    basename = path.basename(basename, '.json');
+    if (basename === 'index') {
+      return dirname;
+    } else {
+      return path.join(dirname, basename);
+    }
   });
 }
 
