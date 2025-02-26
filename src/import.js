@@ -108,7 +108,7 @@ const createDocument = memoize(async (id, attributes, meta) => {
   await applyModelTransforms(attributes, meta);
 
   const doc = new meta.model(attributes);
-  createdDocuments.add(doc);
+  createdDocumentIds.add(doc.id);
   await doc.save();
 
   // Post import phase
@@ -609,7 +609,7 @@ export let placeholdersById = new Map();
 export let documentsByPlaceholder = new Map();
 export let referencedPlaceholders = new Map();
 export let unresolvedDocuments = new Set();
-export let createdDocuments = new Set();
+export let createdDocumentIds = new Set();
 
 function queuePlaceholderResolve(doc) {
   if (documentHasPlaceholders(doc)) {
@@ -696,7 +696,7 @@ function cleanupPlaceholders() {
   placeholdersById = new Map();
   documentsByPlaceholder = new Map();
   referencedPlaceholders = new Map();
-  createdDocuments = new Set();
+  createdDocumentIds = new Set();
   unresolvedDocuments = new Set();
   getPlaceholderForId.cache.clear();
 }
@@ -841,7 +841,7 @@ async function buildFixtures(arr, fn) {
 }
 
 export function isFixture(doc) {
-  return createdDocuments.has(doc);
+  return createdDocumentIds.has(doc.id);
 }
 
 // Stats
