@@ -1,6 +1,9 @@
 import mongoose from 'mongoose';
 
+import { createTestModel } from '@bedrockio/model';
+
 import { importFixtures, resetFixtures } from '../src/import';
+import { cloneFixtures } from '../src/clone';
 import { setOptions } from '../src/options';
 
 process.env['ADMIN_EMAIL'] = 'admin@bedrock.io';
@@ -32,11 +35,7 @@ setOptions({
   },
 });
 
-function createModel(name, attributes) {
-  return mongoose.model(name, new mongoose.Schema(attributes));
-}
-
-createModel('User', {
+createTestModel('User', {
   firstName: 'String',
   lastName: 'String',
   email: {
@@ -57,21 +56,21 @@ createModel('User', {
   ],
 });
 
-createModel('Post', {
+createTestModel('Post', {
   content: 'String',
   nested: {
     nestedContent: 'String',
   },
 });
 
-createModel('Upload', {
+createTestModel('Upload', {
   owner: {
     type: 'ObjectId',
     ref: 'User',
   },
 });
 
-createModel('Organization', {
+createTestModel('Organization', {
   name: 'String',
 });
 
@@ -118,9 +117,9 @@ describe('importFixtures', () => {
   it('should import content files', async () => {
     const post = await importFixtures('posts/post');
     expect(post).toMatchObject({
-      content: '# Header\n',
+      content: '# Header',
       nested: {
-        nestedContent: '# Header\n',
+        nestedContent: '# Header',
       },
     });
   });
@@ -209,5 +208,33 @@ describe('importFixtures', () => {
     await User.deleteOne({
       email: 'admin@bedrock.io',
     });
+  });
+});
+
+describe('cloneFixtures', () => {
+  it('should clone single fixture', async () => {
+    const user = await importFixtures('users/james');
+    const clone = await cloneFixtures('users/james');
+    expect(clone.id).not.toBe(user.id);
+
+    // Unique email is modified.
+    expect(clone.email).not.toBe(user.email);
+    expect(clone.firstName).toBe(user.firstName);
+    expect(clone.lastName).toBe(user.lastName);
+  });
+
+  it('should clone fixture collection', async () => {
+    const users = await importFixtures('users');
+    const clones = await cloneFixtures('users');
+    expect(Object.keys(users)).toEqual(Object.keys(clones));
+
+    const user = users['james'];
+    const clone = clones['james'];
+    expect(clone.id).not.toBe(user.id);
+
+    // Unique email is modified.
+    expect(clone.email).not.toBe(user.email);
+    expect(clone.firstName).toBe(user.firstName);
+    expect(clone.lastName).toBe(user.lastName);
   });
 });

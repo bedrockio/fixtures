@@ -481,6 +481,22 @@ Note that although calling `importFixtures('shops/demo')` will only import a
 subset of the fixtures, this may import a lot of data depending on the
 dependency chain.
 
+### Cloning
+
+Imported fixtures are held in memory. This means that for the purposes of
+testing they should **not** be modified during the course of the tests as this
+will affect other tests. For this purpose the `cloneFixtures` method is
+provided:
+
+```js
+import { cloneFixtures } from 'utils/fixtures';
+
+test('Test against a single shop', async () => {
+  // Guaranteed to be unique on every call.
+  const shop = await cloneFixtures('shops/demo');
+});
+```
+
 ## Exporting
 
 The `exportFixtures` method exports documents as a zip file in a format
