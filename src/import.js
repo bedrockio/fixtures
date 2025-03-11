@@ -200,9 +200,10 @@ async function transformProperty(keys, value, meta) {
 
 // File transform helpers
 
-const FILE_REG = /\.(jpg|png|svg|gif|webp|mp3|mp4|md|txt|html|pdf|csv)$/;
+const FILE_REG =
+  /\.(jpg|png|svg|gif|webp|avif|ogg|mp3|mp4|md|txt|html|pdf|csv)$/;
 const INLINE_CONTENT_REG =
-  /(\(|")([^)"\n]+?\.(?:jpg|png|svg|gif|webp|pdf))([)"])/g;
+  /(\(|")([^)"\n]+?\.(?:jpg|png|svg|gif|avif|webp|pdf))([)"])/g;
 const INLINE_CONTENT_TYPES_REG = /\.(md|html)$/;
 
 async function transformFile(keys, value, meta) {
