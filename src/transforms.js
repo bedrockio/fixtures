@@ -28,7 +28,11 @@ export const customTransforms = {
 
 export const modelTransforms = {
   User: {
-    name(attributes) {
+    name(attributes, meta) {
+      if (meta.model.schema.path('name')) {
+        return;
+      }
+
       // Note intentionally not using name defaults as this
       // can mask invalid fixtures which we want to error.
       const { name } = attributes;
