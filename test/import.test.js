@@ -74,6 +74,14 @@ createTestModel('Organization', {
   name: 'String',
 });
 
+createTestModel('Comment', {
+  name: 'String',
+  subComment: {
+    type: 'ObjectId',
+    ref: 'Comment',
+  },
+});
+
 describe('importFixtures', () => {
   it('should load root fixtures', async () => {
     const fixtures = await importFixtures();
@@ -208,6 +216,12 @@ describe('importFixtures', () => {
     await User.deleteOne({
       email: 'admin@bedrock.io',
     });
+  });
+
+  it('should resolve recursive comment fixtures', async () => {
+    const comments = await importFixtures('comments');
+    const first = comments['Comment 1'];
+    expect(first.subComment).toEqual(first._id);
   });
 });
 

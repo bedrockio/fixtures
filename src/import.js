@@ -629,6 +629,7 @@ async function resolvePlaceholders() {
         await doc.updateOne({
           $set: update,
         });
+        doc.set(update);
       }
       unresolvedDocuments.delete(doc);
     })
@@ -838,6 +839,7 @@ async function buildFixtures(arr, fn) {
   for (let el of arr) {
     Object.assign(fixtures, await fn(el));
   }
+  await resolvePlaceholders();
   return fixtures;
 }
 
