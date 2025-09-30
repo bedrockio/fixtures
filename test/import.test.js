@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { createTestModel } from '@bedrockio/model';
 
 import { importFixtures, resetFixtures } from '../src/import';
+import { loadFixtures } from '../src/load';
 import { cloneFixtures } from '../src/clone';
 import { setOptions } from '../src/options';
 
@@ -250,5 +251,25 @@ describe('cloneFixtures', () => {
     expect(clone.email).not.toBe(user.email);
     expect(clone.firstName).toBe(user.firstName);
     expect(clone.lastName).toBe(user.lastName);
+  });
+});
+
+describe('loadFixtures', () => {
+  it('should not load fixtures if admin user has been deleted', async () => {
+    const { User } = mongoose.models;
+
+    await User.destroyMany({
+      firstName: 'Jack',
+    });
+
+    const admin = await importFixtures('users/admin');
+    await admin.delete();
+
+    await loadFixtures();
+
+    const jack = await User.findOne({
+      firstName: 'Jack',
+    });
+    expect(jack).toBe(null);
   });
 });
