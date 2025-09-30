@@ -1,19 +1,18 @@
-import path from 'path';
 import fs from 'fs/promises';
+import path from 'path';
 
-import { glob } from 'glob';
-import mongoose from 'mongoose';
 import logger from '@bedrockio/logger';
-import { get, memoize, cloneDeep, mapKeys, camelCase, kebabCase } from 'lodash';
+import { glob } from 'glob';
+import { camelCase, cloneDeep, get, kebabCase, mapKeys, memoize } from 'lodash';
+import mongoose from 'mongoose';
 
-import { getBaseDir, getOption } from './options';
 import { requireEnv } from './env';
-import { pluralCamel, pluralKebab, stringReplaceAsync } from './utils';
 import { resolveFile } from './file';
+import { getBaseDir, getOption } from './options';
+import { customTransforms, modelTransforms } from './transforms';
+import { pluralCamel, pluralKebab, stringReplaceAsync } from './utils';
 
 const { models } = mongoose;
-
-import { modelTransforms, customTransforms } from './transforms';
 
 export async function importFixtures(id = '', meta) {
   const { base, name } = getIdComponents(id);

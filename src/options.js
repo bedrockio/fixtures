@@ -2,7 +2,7 @@ import path from 'path';
 
 import logger from '@bedrockio/logger';
 
-import { modelTransforms, customTransforms } from './transforms';
+import { customTransforms, modelTransforms } from './transforms';
 
 const options = {
   baseDir: path.join(process.cwd(), 'fixtures'),

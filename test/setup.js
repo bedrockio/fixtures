@@ -1,5 +1,5 @@
-import mongoose from 'mongoose';
 import logger from '@bedrockio/logger';
+import mongoose from 'mongoose';
 
 async function setupDb() {
   try {

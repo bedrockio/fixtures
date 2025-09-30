@@ -1,10 +1,9 @@
+import { createTestModel } from '@bedrockio/model';
 import mongoose from 'mongoose';
 
-import { createTestModel } from '@bedrockio/model';
-
+import { cloneFixtures } from '../src/clone';
 import { importFixtures, resetFixtures } from '../src/import';
 import { loadFixtures } from '../src/load';
-import { cloneFixtures } from '../src/clone';
 import { setOptions } from '../src/options';
 
 process.env['ADMIN_EMAIL'] = 'admin@bedrock.io';

@@ -1,6 +1,5 @@
-import mongoose from 'mongoose';
-
 import { camelCase, kebabCase, upperFirst } from 'lodash';
+import mongoose from 'mongoose';
 
 export { kebabCase } from 'lodash';
 

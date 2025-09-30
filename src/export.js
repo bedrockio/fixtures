@@ -1,17 +1,17 @@
+import { createWriteStream, promises as fs } from 'fs';
 import path from 'path';
 import { Writable } from 'stream';
-import { createWriteStream, promises as fs } from 'fs';
 
-import Zip from 'jszip';
-import mongoose from 'mongoose';
 import logger from '@bedrockio/logger';
-import { set, memoize, isPlainObject } from 'lodash';
+import Zip from 'jszip';
+import { isPlainObject, memoize, set } from 'lodash';
+import mongoose from 'mongoose';
 
 import {
   camelUpper,
   kebabCase,
-  pluralKebab,
   pluralCamel,
+  pluralKebab,
   stringReplaceAsync,
 } from './utils';
 
