@@ -38,7 +38,7 @@
     "@babel/core": "^7.28.4",
     "@babel/preset-env": "^7.28.3",
     "@bedrockio/eslint-plugin": "^1.2.2",
-    "@bedrockio/model": "^0.13.3",
+    "@bedrockio/model": "^0.21.2",
     "@bedrockio/prettier-config": "^1.1.1",
     "@bedrockio/yada": "^1.6.1",
     "@shelf/jest-mongodb": "^5.2.2",
