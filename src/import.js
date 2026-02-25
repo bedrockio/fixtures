@@ -151,7 +151,7 @@ async function transformAttributes(attributes, meta) {
   await Promise.all(
     Object.entries(attributes).map(async ([key, value]) => {
       attributes[key] = await transformProperty([key], value, meta);
-    })
+    }),
   );
 }
 
@@ -185,7 +185,7 @@ async function transformProperty(keys, value, meta) {
           k = resolved;
         }
         value[k] = await transformProperty([...keys, k], v, meta);
-      })
+      }),
     );
   } else if (await isLocalFile(value, meta)) {
     value = await transformFile(keys, value, meta);
@@ -216,18 +216,17 @@ async function transformFile(keys, value, meta) {
   return value;
 }
 
-async function isLocalFile(value, meta) {
+async function isLocalFile(value) {
   if (
     typeof value !== 'string' ||
-    value.startsWith('http') ||
+    // Anything with a protocol on it is NOT a local file.
+    value.includes('://') ||
     value.includes('\n')
   ) {
     return false;
   }
-  if (FILE_REG.test(value)) {
-    return fileExists(await resolveRelativeFile(value, meta));
-  }
-  return false;
+
+  return FILE_REG.test(value);
 }
 
 // Note that the same content file may be imported
@@ -255,7 +254,7 @@ async function inlineContentFiles(content, meta) {
       const upload = await importUpload(file, meta);
       const url = `${apiUrl}/1/uploads/${upload.id}/raw`;
       return `${open}${url}${close}`;
-    }
+    },
   );
 }
 
@@ -277,7 +276,7 @@ async function applyModelTransforms(attributes, meta) {
       return await fn(attributes, meta, {
         importFixtures,
       });
-    })
+    }),
   );
 }
 
@@ -333,7 +332,7 @@ const importUploadOnce = memoize(
       },
       {
         owner,
-      }
+      },
     );
 
     queuePlaceholderResolve(upload);
@@ -341,7 +340,7 @@ const importUploadOnce = memoize(
   },
   (file, meta) => {
     return file + meta.id;
-  }
+  },
 );
 
 // Generated modules may cross-reference other fixtures, in which
@@ -482,7 +481,7 @@ const logBadFixtureField = memoize(
   (keys, value, meta) => {
     // Memoize per fixture, path, and value;
     return meta.id + keys.join('.') + value;
-  }
+  },
 );
 
 const logCircularReference = memoize((message) => {
@@ -505,8 +504,8 @@ async function getGeneratedFixtures(id, type) {
         throw new Error(
           `Could not import ${join(
             base,
-            name
-          )} from generated directory ${base}.`
+            name,
+          )} from generated directory ${base}.`,
         );
       }
     }
@@ -549,7 +548,7 @@ const importGeneratedFixtures = memoize(async (base) => {
         return {
           [name]: await runImport(join(base, name), attributes, meta),
         };
-      }
+      },
     );
     return {
       loaded,
@@ -631,7 +630,7 @@ async function resolvePlaceholders() {
         doc.set(update);
       }
       unresolvedDocuments.delete(doc);
-    })
+    }),
   );
 }
 

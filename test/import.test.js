@@ -135,7 +135,7 @@ describe('importFixtures', () => {
   it('should not interpret external URL as file', async () => {
     const jack = await importFixtures('users/jack');
     expect(jack.profile).toBe(
-      'My profile image: https://example.com/path/to/image.jpg'
+      'My profile image: https://example.com/path/to/image.jpg',
     );
   });
 

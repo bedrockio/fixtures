@@ -1,3 +1,7 @@
+## 1.4.7
+
+- Better local file check for clearer errors.
+
 ## 1.4.6
 
 - Improved admin check for bootstrap.
