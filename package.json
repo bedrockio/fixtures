@@ -8,7 +8,7 @@
     "lint": "eslint",
     "build": "scripts/build",
     "eject": "scripts/eject.js",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "yarn build"
   },
   "main": "dist/cjs/index.js",
   "module": "src/index.js",
