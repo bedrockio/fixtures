@@ -1,3 +1,7 @@
+## 1.4.9
+
+- Need to add lodash-es -> lodash mapper for CJS due to idiocy.
+
 ## 1.4.8
 
 - lodash -> lodash-es
