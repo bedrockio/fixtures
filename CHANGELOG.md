@@ -1,3 +1,8 @@
+## 1.4.8
+
+- lodash -> lodash-es
+- Package bumps.
+
 ## 1.4.7
 
 - Better local file check for clearer errors.

@@ -344,7 +344,7 @@ directory:
 ```js
 // fixtures/shops/index.js
 
-import { kebabCase } from 'lodash';
+import { kebabCase } from 'lodash-es';
 const names = ['Flower Shop', 'Department Store', 'Supermarket'];
 
 export default names.map((name) => {
@@ -367,7 +367,7 @@ fixture name, export an object instead:
 ```js
 // shops/index.js
 
-import { kebabCase } from 'lodash';
+import { kebabCase } from 'lodash-es';
 const names = ['Flower Shop', 'Department Store', 'Supermarket'];
 const fixtures = {};
 

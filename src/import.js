@@ -3,7 +3,7 @@ import path from 'path';
 
 import logger from '@bedrockio/logger';
 import { glob } from 'glob';
-import { camelCase, cloneDeep, get, kebabCase, mapKeys, memoize } from 'lodash';
+import { camelCase, cloneDeep, get, kebabCase, mapKeys, memoize } from 'lodash-es';
 import mongoose from 'mongoose';
 
 import { requireEnv } from './env';

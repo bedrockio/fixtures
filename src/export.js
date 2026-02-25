@@ -4,7 +4,7 @@ import { Writable } from 'stream';
 
 import logger from '@bedrockio/logger';
 import Zip from 'jszip';
-import { isPlainObject, memoize, set } from 'lodash';
+import { isPlainObject, memoize, set } from 'lodash-es';
 import mongoose from 'mongoose';
 
 import {

@@ -1,7 +1,7 @@
-import { camelCase, kebabCase, upperFirst } from 'lodash';
+import { camelCase, kebabCase, upperFirst } from 'lodash-es';
 import mongoose from 'mongoose';
 
-export { kebabCase } from 'lodash';
+export { kebabCase } from 'lodash-es';
 
 export function pluralCamel(str) {
   // Mongoose pluralize is for db collections so will lose camel casing,
