@@ -3,4 +3,5 @@ export default {
   setupFilesAfterEnv: ['<rootDir>/test/setup'],
   // https://github.com/shelfio/jest-mongodb#6-jest-watch-mode-gotcha
   watchPathIgnorePatterns: ['globalConfig'],
+  transformIgnorePatterns: ['/node_modules/(?!lodash-es)'],
 };

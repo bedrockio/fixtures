@@ -1,3 +1,7 @@
+## 1.5.0
+
+- Hint for private uploads in fixture filename.
+
 ## 1.4.9
 
 - Need to add lodash-es -> lodash mapper for CJS due to idiocy.

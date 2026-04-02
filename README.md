@@ -190,7 +190,9 @@ type for that field is an `ObjectId`.
 }
 ```
 
-Allowed file types are `(jpg|png|svg|gif|webp|mp4|md|txt|html|pdf|csv)`.
+Allowed file types are `(jpg|png|svg|gif|webp|mp4|md|txt|html|pdf|csv)`. Note
+that a file that includes the keyword `private` in the filename will pass
+`private: true` along to the upload attributes.
 
 ### File Inlining
 

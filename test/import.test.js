@@ -30,7 +30,7 @@ setOptions({
   createUpload: async (file, options) => {
     const Upload = mongoose.models['Upload'];
     return await Upload.create({
-      owner: options.owner,
+      ...options,
     });
   },
 });
@@ -64,6 +64,7 @@ createTestModel('Post', {
 });
 
 createTestModel('Upload', {
+  private: 'Boolean',
   owner: {
     type: 'ObjectId',
     ref: 'User',
@@ -222,6 +223,11 @@ describe('importFixtures', () => {
     const comments = await importFixtures('comments');
     const first = comments['Comment 1'];
     expect(first.subComment).toEqual(first._id);
+  });
+
+  it('should have private image', async () => {
+    const dennis = await importFixtures('users/dennis');
+    expect(dennis.image.private).toBe(true);
   });
 });
 

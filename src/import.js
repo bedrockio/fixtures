@@ -3,7 +3,14 @@ import path from 'path';
 
 import logger from '@bedrockio/logger';
 import { glob } from 'glob';
-import { camelCase, cloneDeep, get, kebabCase, mapKeys, memoize } from 'lodash-es';
+import {
+  camelCase,
+  cloneDeep,
+  get,
+  kebabCase,
+  mapKeys,
+  memoize,
+} from 'lodash-es';
 import mongoose from 'mongoose';
 
 import { requireEnv } from './env';
@@ -326,14 +333,19 @@ const importUploadOnce = memoize(
     }
 
     const createUpload = getOption('createUpload');
-    const upload = await createUpload(
-      {
-        filepath,
-      },
-      {
-        owner,
-      },
-    );
+    const filename = path.basename(filepath);
+
+    const file = {
+      filename,
+      filepath,
+    };
+
+    const attributes = {
+      owner,
+      private: filename.includes('private'),
+    };
+
+    const upload = await createUpload(file, attributes);
 
     queuePlaceholderResolve(upload);
     return upload;
