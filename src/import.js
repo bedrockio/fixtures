@@ -3,6 +3,7 @@ import path from 'path';
 
 import logger from '@bedrockio/logger';
 import { glob } from 'glob';
+
 import {
   camelCase,
   cloneDeep,
@@ -11,6 +12,7 @@ import {
   mapKeys,
   memoize,
 } from 'lodash-es';
+
 import mongoose from 'mongoose';
 
 import { requireEnv } from './env';
@@ -47,7 +49,7 @@ async function importRoot(meta) {
 }
 
 async function importDirectory(id, meta) {
-  const generated = await getGeneratedFixtures(id, 'imported');
+  const generated = await getGeneratedFixtures(id, 'imported', meta);
   if (generated) {
     return generated;
   }
@@ -63,7 +65,7 @@ async function importDirectory(id, meta) {
 
 async function importFixture(id, meta) {
   try {
-    const generated = await getGeneratedFixtures(id, 'imported');
+    const generated = await getGeneratedFixtures(id, 'imported', meta);
     if (generated) {
       return generated;
     }
@@ -108,23 +110,28 @@ async function runImport(id, attributes, meta) {
 
 const createDocument = memoize(async (id, attributes, meta) => {
   logger.debug(`Importing: ${id}`);
+  inFlightIds.add(id);
 
-  // Create the document
-  await transformAttributes(attributes, meta);
-  await applyModelTransforms(attributes, meta);
+  try {
+    // Create the document
+    await transformAttributes(attributes, meta);
+    await applyModelTransforms(attributes, meta);
 
-  const doc = new meta.model(attributes);
-  createdDocumentIds.add(doc.id);
-  await doc.save();
+    const doc = new meta.model(attributes);
+    createdDocumentIds.add(doc.id);
+    await doc.save();
 
-  // Post import phase
-  setDocumentForPlaceholder(doc, meta.id);
-  await resolvePlaceholders();
-  queuePlaceholderResolve(doc);
+    // Post import phase
+    setDocumentForPlaceholder(doc, meta.id);
+    await resolvePlaceholders();
+    queuePlaceholderResolve(doc);
 
-  logger.debug(`Finished import: ${id}`);
-  pushStat('fixtures', id);
-  return doc;
+    logger.debug(`Finished import: ${id}`);
+    pushStat('fixtures', id);
+    return doc;
+  } finally {
+    inFlightIds.delete(id);
+  }
 });
 
 function isUserImport(id) {
@@ -132,24 +139,30 @@ function isUserImport(id) {
 }
 
 const findOrCreateUser = memoize(async (id, attributes, meta) => {
-  const { User } = mongoose.models;
+  inFlightIds.add(id);
 
-  let user;
+  try {
+    const { User } = mongoose.models;
 
-  if (User && attributes.email) {
-    await transformAttributes(attributes, meta);
-    await applyModelTransforms(attributes, meta);
+    let user;
 
-    user = await User.findOne({
-      email: attributes.email,
-    });
+    if (User && attributes.email) {
+      await transformAttributes(attributes, meta);
+      await applyModelTransforms(attributes, meta);
+
+      user = await User.findOne({
+        email: attributes.email,
+      });
+    }
+
+    if (!user) {
+      user = await await createDocument(id, attributes, meta);
+    }
+
+    return user;
+  } finally {
+    inFlightIds.delete(id);
   }
-
-  if (!user) {
-    user = await await createDocument(id, attributes, meta);
-  }
-
-  return user;
 });
 
 // Property transform helpers.
@@ -433,6 +446,18 @@ async function importFixturesWithGuard(id, meta) {
   try {
     checkGeneratedConflict(id, meta);
     checkCircularReferences(id, meta);
+    // checkCircularReferences walks the meta chain, but cycles can also form
+    // across concurrent sibling paths whose chains don't include each other
+    // (e.g. parallel branches of a Promise.all in transformAttributes that
+    // converge on the same fixture from two directions). When that happens,
+    // both paths await each other's in-flight load and deadlock. Detect this
+    // by checking whether the target is currently in-flight from any path,
+    // and fall back to the existing placeholder mechanism if so.
+    if (inFlightIds.has(id)) {
+      // The cycle itself goes through the in-flight load on another path;
+      // this trace just shows where our caller got stuck.
+      throw new CircularReferenceError([...getMetaChainIds(meta), id]);
+    }
     return await importFixtures(id, meta);
   } catch (err) {
     if (err instanceof CircularReferenceError) {
@@ -461,13 +486,10 @@ class CircularReferenceError extends Error {
 }
 
 function checkCircularReferences(id, meta) {
-  const ids = [id];
-  while (meta) {
-    ids.unshift(meta.id);
-    if (meta.id === id) {
-      throw new CircularReferenceError(ids);
-    }
-    meta = meta.meta;
+  const chain = getMetaChainIds(meta);
+  const matchIdx = chain.indexOf(id);
+  if (matchIdx !== -1) {
+    throw new CircularReferenceError([...chain.slice(matchIdx), id]);
   }
 }
 
@@ -479,6 +501,19 @@ function getMetaChain(meta) {
   }
 
   return chain.reverse().join(' -> ');
+}
+
+// Walks the meta chain root-to-leaf returning fixture ids only (skipping
+// boundary entries like the {generated} marker that have no id).
+function getMetaChainIds(meta) {
+  const ids = [];
+  while (meta) {
+    if (meta.id) {
+      ids.unshift(meta.id);
+    }
+    meta = meta.meta;
+  }
+  return ids;
 }
 
 // Memoize these messages to prevent multiple logs
@@ -505,9 +540,9 @@ const logCircularReference = memoize((message) => {
 
 // Generated module helpers.
 
-async function getGeneratedFixtures(id, type) {
+async function getGeneratedFixtures(id, type, parentMeta) {
   const { base, name } = getIdComponents(id);
-  const generated = await importGeneratedFixtures(base);
+  const generated = await importGeneratedFixtures(base, parentMeta);
   if (generated) {
     let fixtures = generated[type];
     if (name) {
@@ -525,7 +560,10 @@ async function getGeneratedFixtures(id, type) {
   }
 }
 
-const importGeneratedFixtures = memoize(async (base) => {
+// Memoized on `base` only — concurrent callers share the in-flight promise.
+// `parentMeta` from the first caller is propagated into the inner imports so
+// that checkCircularReferences can walk the full chain across the boundary.
+const importGeneratedFixtures = memoize(async (base, parentMeta) => {
   let loaded, imported;
   const generateFixtureId = getFixtureIdGenerator(base);
   try {
@@ -546,7 +584,7 @@ const importGeneratedFixtures = memoize(async (base) => {
     if (Array.isArray(loaded)) {
       loaded = mapKeys(loaded, generateFixtureId);
     }
-    const meta = { generated: base };
+    const meta = { generated: base, meta: parentMeta };
 
     // Imported attributes will be mutated, so do a deep clone
     // to ensure that loaded fixtures will be unchanged. This allows
@@ -621,6 +659,7 @@ export let documentsByPlaceholder = new Map();
 export let referencedPlaceholders = new Map();
 export let unresolvedDocuments = new Set();
 export let createdDocumentIds = new Set();
+const inFlightIds = new Set();
 
 function queuePlaceholderResolve(doc) {
   if (documentHasPlaceholders(doc)) {
@@ -641,7 +680,15 @@ async function resolvePlaceholders() {
         });
         doc.set(update);
       }
-      unresolvedDocuments.delete(doc);
+      // Keep the doc in `unresolvedDocuments` if any placeholders remain
+      // unresolved — they'll be retried by a later resolvePlaceholders pass
+      // (typically after the target fixture saves and registers itself in
+      // documentsByPlaceholder). Removing prematurely caused refs to leak as
+      // unresolved placeholders forever when the target hadn't saved yet at
+      // the time of the first pass.
+      if (!documentHasPlaceholders(doc)) {
+        unresolvedDocuments.delete(doc);
+      }
     }),
   );
 }
@@ -710,6 +757,7 @@ function cleanupPlaceholders() {
   referencedPlaceholders = new Map();
   createdDocumentIds = new Set();
   unresolvedDocuments = new Set();
+  inFlightIds.clear();
   getPlaceholderForId.cache.clear();
 }
 

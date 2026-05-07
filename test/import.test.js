@@ -83,6 +83,93 @@ createTestModel('Comment', {
   },
 });
 
+// Models for the cross-path cycle test below. The cycle is:
+//   CycleUser.organization <-> CycleOrg.owner
+// triggered by a CycleClient that holds parallel refs to both an org
+// (loaded via a generated module) and a location whose owner is the same
+// user. The two paths converge on the user via meta chains that don't
+// include each other, so the chain-walk cycle detector cannot see it
+// from either side; only the in-flight check in importFixturesWithGuard
+// breaks the deadlock.
+createTestModel('CycleOrg', {
+  name: 'String',
+  owner: {
+    type: 'ObjectId',
+    ref: 'CycleUser',
+  },
+});
+
+createTestModel('CycleUser', {
+  email: {
+    type: 'String',
+    unique: true,
+  },
+  organization: {
+    type: 'ObjectId',
+    ref: 'CycleOrg',
+  },
+});
+
+createTestModel('CycleLocation', {
+  name: 'String',
+  owner: {
+    type: 'ObjectId',
+    ref: 'CycleUser',
+  },
+});
+
+createTestModel('CycleClient', {
+  name: 'String',
+  organization: {
+    type: 'ObjectId',
+    ref: 'CycleOrg',
+  },
+  location: {
+    type: 'ObjectId',
+    ref: 'CycleLocation',
+  },
+});
+
+// Runs before any other test that calls resetFixtures() — once the cycle
+// fixtures are loaded into the DB, later tests that clear the memoize cache
+// won't try to re-create them.
+describe('cross-path circular references', () => {
+  it(
+    'should resolve when concurrent sibling refs converge on a cycle endpoint',
+    async () => {
+      // CycleClient triggers two concurrent paths via Promise.all in
+      // transformAttributes:
+      //   - organization → cycle-orgs/acme (via the generated index.json)
+      //   - location → cycle-locations/hq → owner: alice
+      // Both paths converge on cycle-users/alice, whose `organization`
+      // ref points back at acme. Without the in-flight check, the two
+      // memoized loads await each other and deadlock — the chain-walk
+      // detector misses the cycle because each path's meta chain only
+      // contains its own ancestors, not the other path's.
+      const c1 = await importFixtures('cycle-clients/c1');
+      expect(c1.name).toBe('C1');
+
+      const acme = await importFixtures('cycle-orgs/acme');
+      const alice = await importFixtures('cycle-users/alice');
+      const hq = await importFixtures('cycle-locations/hq');
+
+      // Refs may be populated docs or bare ObjectIds (when resolved via
+      // a placeholder). Normalize to the id string for comparison.
+      const idOf = (x) => (x?._id || x).toString();
+
+      expect(idOf(c1.organization)).toBe(acme.id);
+      expect(idOf(c1.location)).toBe(hq.id);
+
+      // Cycle endpoints must resolve to the real ids, not leftover
+      // placeholder ObjectIds.
+      expect(idOf(acme.owner)).toBe(alice.id);
+      expect(idOf(alice.organization)).toBe(acme.id);
+      expect(idOf(hq.owner)).toBe(alice.id);
+    },
+    5000,
+  );
+});
+
 describe('importFixtures', () => {
   it('should load root fixtures', async () => {
     const fixtures = await importFixtures();

@@ -1,3 +1,7 @@
+## 1.5.1
+
+- Fixed issue with circular refences in siblings.
+
 ## 1.5.0
 
 - Hint for private uploads in fixture filename.
