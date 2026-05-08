@@ -1,4 +1,11 @@
 {
   "email": "alice@example.com",
-  "organization": "acme"
+  "organization": "acme",
+  "roles": [
+    {
+      "role": "admin",
+      "scope": "organization",
+      "scopeRef": "acme"
+    }
+  ]
 }

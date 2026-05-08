@@ -108,6 +108,20 @@ createTestModel('CycleUser', {
     type: 'ObjectId',
     ref: 'CycleOrg',
   },
+  // Subdocument-array ObjectId path. The placeholder resolver walks
+  // `schema.eachPath`, which only emits `roles` for arrays of subdocs,
+  // so leaf paths like `roles.scopeRef` were missed and any placeholder
+  // landing here used to leak into the saved doc unresolved.
+  roles: [
+    {
+      role: 'String',
+      scope: 'String',
+      scopeRef: {
+        type: 'ObjectId',
+        ref: 'CycleOrg',
+      },
+    },
+  ],
 });
 
 createTestModel('CycleLocation', {
@@ -168,6 +182,22 @@ describe('cross-path circular references', () => {
     },
     5000,
   );
+
+  it('should resolve placeholders inside subdocument array paths', async () => {
+    // alice.roles[0].scopeRef points back at acme, same as alice.organization.
+    // When alice loads as a nested ref under acme.owner, both refs hit the
+    // cycle detector and land in the saved doc as placeholder ObjectIds.
+    // The resolver pass walks `schema.eachPath`, which emits `roles` (the
+    // DocumentArray) but not `roles.scopeRef` — so the leaf placeholder used
+    // to leak through unresolved. Verify it now resolves to the real id.
+    const alice = await importFixtures('cycle-users/alice');
+    const acme = await importFixtures('cycle-orgs/acme');
+
+    const idOf = (x) => (x?._id || x).toString();
+
+    expect(alice.roles).toHaveLength(1);
+    expect(idOf(alice.roles[0].scopeRef)).toBe(acme.id);
+  });
 });
 
 describe('importFixtures', () => {

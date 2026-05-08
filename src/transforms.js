@@ -62,7 +62,7 @@ export const modelTransforms = {
         } else {
           const organization = await context.importFixtures(
             organizationFixtureId,
-            meta
+            meta,
           );
           attributes.roles = [
             {
