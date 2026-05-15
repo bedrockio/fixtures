@@ -1,3 +1,7 @@
+## 1.5.3
+
+- Bumped mongoose version in peer deps.
+
 ## 1.5.2
 
 - Better placeholder resolution for nested ObjectIds.

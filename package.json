@@ -31,7 +31,7 @@
   },
   "peerDependencies": {
     "@bedrockio/model": "0.x",
-    "mongoose": "8.x"
+    "mongoose": "9.x"
   },
   "devDependencies": {
     "@babel/cli": "^7.28.6",
