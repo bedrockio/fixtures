@@ -178,6 +178,12 @@ async function transformAttributes(attributes, meta) {
 // Note that "keys" is the property path as an array.
 // The naming is only to not shadow "path".
 async function transformProperty(keys, value, meta) {
+  // ObjectIds resolved on a prior pass shouldn't be recursed into — their
+  // internal `buffer` would be walked needlessly. Also acts as a safety net
+  // for the Mongoose Document case.
+  if (value instanceof mongoose.Types.ObjectId) {
+    return value;
+  }
   const isObject = value === Object(value);
   if (!isKnownField(keys, meta)) {
     // If the field is not known it might be inlined data referenced
@@ -416,7 +422,12 @@ async function transformReference(keys, value, meta) {
   }
   const model = getReferenceModel(keys, meta);
   const id = join(pluralKebab(model.modelName), value);
-  return await importFixturesWithGuard(id, meta);
+  const result = await importFixturesWithGuard(id, meta);
+  // Cycle path returns a placeholder ObjectId; normal path returns a
+  // Document. Always hand back an ObjectId so attributes stay primitive —
+  // otherwise Mongoose treats the Document as a populated ref and later
+  // `doc.get(path)` returns a Document instead of the id.
+  return result instanceof mongoose.Document ? result._id : result;
 }
 
 function getReferenceModel(keys, meta) {
@@ -654,7 +665,6 @@ function getFixtureIdGenerator(base) {
 
 // Placeholder helpers
 
-export let placeholdersById = new Map();
 export let documentsByPlaceholder = new Map();
 export let referencedPlaceholders = new Map();
 export let unresolvedDocuments = new Set();
@@ -662,7 +672,7 @@ export let createdDocumentIds = new Set();
 const inFlightIds = new Set();
 
 function queuePlaceholderResolve(doc) {
-  if (documentHasPlaceholders(doc)) {
+  if (getDocumentPlaceholders(doc).length > 0) {
     unresolvedDocuments.add(doc);
   }
 }
@@ -670,59 +680,65 @@ function queuePlaceholderResolve(doc) {
 async function resolvePlaceholders() {
   await Promise.all(
     Array.from(unresolvedDocuments).map(async (doc) => {
-      const update = resolveDocumentPlaceholders(doc);
+      let update;
+      let hasUnresolved = false;
+      for (const [placeholder, path] of getDocumentPlaceholders(doc)) {
+        const resolved = getDocumentForPlaceholder(placeholder);
+        if (resolved) {
+          update ||= {};
+          update[path] = resolved.id;
+        } else {
+          hasUnresolved = true;
+        }
+      }
       if (update) {
-        // Avoid hitting save hooks as these can cause
-        // issues with the autoclean test functionality
-        // used in bedrock with circular references.
-        await doc.updateOne({
-          $set: update,
-        });
+        // Bypass save hooks — bedrock's autoclean test pattern reacts badly
+        // to them when documents reference each other.
+        await doc.updateOne({ $set: update });
         doc.set(update);
       }
-      // Keep the doc in `unresolvedDocuments` if any placeholders remain
-      // unresolved — they'll be retried by a later resolvePlaceholders pass
-      // (typically after the target fixture saves and registers itself in
-      // documentsByPlaceholder). Removing prematurely caused refs to leak as
-      // unresolved placeholders forever when the target hadn't saved yet at
-      // the time of the first pass.
-      if (!documentHasPlaceholders(doc)) {
+      // Keep the doc queued if anything is still unresolved; the target
+      // fixture may save on a later pass and register itself.
+      if (!hasUnresolved) {
         unresolvedDocuments.delete(doc);
       }
     }),
   );
 }
 
-function resolveDocumentPlaceholders(doc) {
-  let result;
-  for (let [placeholder, path] of getDocumentPlaceholders(doc)) {
-    const resolved = getDocumentForPlaceholder(placeholder);
-    if (resolved) {
-      result ||= {};
-      result[path] = resolved.id;
-    }
-  }
-  return result;
-}
-
+// Walk every ObjectId path on the document — including paths inside
+// embedded subdocs and document arrays — and collect the ones currently
+// holding a placeholder ObjectId.
 function getDocumentPlaceholders(doc) {
   const placeholders = [];
-  doc.schema.eachPath((path, schemaType) => {
-    if (schemaType instanceof mongoose.Schema.Types.ObjectId) {
-      // Get the ObjectId for the path. If the path is populated
-      // then the poorly named "populated" will return the id,
-      // otherwise get the direct property.
-      const objectId = doc.populated(path) || doc.get(path);
-      if (isReferencedPlaceholder(objectId)) {
-        placeholders.push([objectId, path]);
-      }
-    }
-  });
+  visit(doc.schema, doc, []);
   return placeholders;
-}
 
-function documentHasPlaceholders(doc) {
-  return getDocumentPlaceholders(doc).length > 0;
+  function visit(schema, parent, segments) {
+    schema.eachPath((name, schemaType) => {
+      const value = parent.get(name);
+      if (value == null) {
+        return;
+      }
+      const path = [...segments, name];
+      if (schemaType instanceof mongoose.Schema.Types.ObjectId) {
+        if (isReferencedPlaceholder(value)) {
+          placeholders.push([value, path.join('.')]);
+        }
+      } else if (schemaType.schema) {
+        // DocumentArray → iterate elements with indices in the path so the
+        // resolver can $set positionally (e.g. `roles.0.scopeRef`).
+        // SingleNested → recurse into the single subdoc.
+        if (Array.isArray(value)) {
+          value.forEach((sub, idx) => {
+            visit(schemaType.schema, sub, [...path, idx]);
+          });
+        } else {
+          visit(schemaType.schema, value, path);
+        }
+      }
+    });
+  }
 }
 
 function getDocumentForPlaceholder(placeholder) {
@@ -730,8 +746,7 @@ function getDocumentForPlaceholder(placeholder) {
 }
 
 function setDocumentForPlaceholder(doc, id) {
-  const placeholder = getPlaceholderForId(id);
-  documentsByPlaceholder.set(placeholder.toString(), doc);
+  documentsByPlaceholder.set(getPlaceholderForId(id).toString(), doc);
 }
 
 function getReferencedPlaceholder(id) {
@@ -744,15 +759,11 @@ function isReferencedPlaceholder(objectId) {
   return referencedPlaceholders.has(objectId?.toString());
 }
 
-// Generates a placeholder once per id.
-const getPlaceholderForId = memoize((id) => {
-  const placeholder = new mongoose.Types.ObjectId();
-  placeholdersById.set(id, placeholder.toString());
-  return placeholder;
-});
+// One stable placeholder ObjectId per fixture id — lodash.memoize keys on
+// the first argument.
+const getPlaceholderForId = memoize(() => new mongoose.Types.ObjectId());
 
 function cleanupPlaceholders() {
-  placeholdersById = new Map();
   documentsByPlaceholder = new Map();
   referencedPlaceholders = new Map();
   createdDocumentIds = new Set();

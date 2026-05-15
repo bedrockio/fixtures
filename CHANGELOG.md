@@ -1,3 +1,7 @@
+## 1.5.2
+
+- Better placeholder resolution for nested ObjectIds.
+
 ## 1.5.1
 
 - Fixed issue with circular refences in siblings.
